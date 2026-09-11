@@ -1,0 +1,11 @@
+# Kopiér denne fil til terraform.tfvars og udfyld dine egne værdier.
+# terraform.tfvars bliver IKKE committet til git (se .gitignore).
+
+subscription_id     = "451d0fc1-6bbb-433c-98bf-05a95d5586fb"
+prefix               = "lamp"
+location             = "westeurope"
+vm_size              = "Standard_B1s"
+admin_username       = "bornholm"
+ssh_public_key_path  = "~/.ssh/terra.pub"
+admin_source_ip      = "185.73.72.112/32"
+db_root_password     = "Bordtennis4x12"
