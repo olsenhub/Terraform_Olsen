@@ -6,6 +6,10 @@ terraform {
       source  = "hashicorp/azurerm"
       version = "~> 3.90"
     }
+    cloudinit = {
+      source  = "hashicorp/cloudinit"
+      version = "~> 2.3"
+    }
   }
 }
 
@@ -13,7 +17,6 @@ provider "azurerm" {
   features {}
   subscription_id = var.subscription_id
 }
-
 # ---------------------------------------------------------------------------
 # Resource Group
 # ---------------------------------------------------------------------------
@@ -114,6 +117,37 @@ resource "azurerm_network_interface" "nic" {
 }
 
 # ---------------------------------------------------------------------------
+# Cloud-init: samler installationsscripts til én custom_data
+# ---------------------------------------------------------------------------
+data "cloudinit_config" "init" {
+  gzip          = false
+  base64_encode = true
+
+  # LAMP-stacken (templatefile, fordi den skal have db-passwordet)
+  part {
+    content_type = "text/x-shellscript"
+    filename     = "01-install_lamp.sh"
+    content = templatefile("${path.module}/scripts/install_lamp.sh", {
+      db_root_password = var.db_root_password
+    })
+  }
+
+  # IDS - separat lag, ikke en del af LAMP
+  part {
+    content_type = "text/x-shellscript"
+    filename     = "02-install_suricata.sh"
+    content      = file("${path.module}/scripts/install_suricata.sh")
+  }
+  # Alerts til Discord - kraever at Suricata er installeret
+  part {
+    content_type = "text/x-shellscript"
+    filename     = "03-install_discord_alerts.sh"
+    content = templatefile("${path.module}/scripts/install_discord_alerts.sh", {
+      discord_webhook_url = var.discord_webhook_url
+    })
+  }
+}
+# ---------------------------------------------------------------------------
 # VM - Ubuntu Server med LAMP installeret via cloud-init (custom_data)
 # ---------------------------------------------------------------------------
 resource "azurerm_linux_virtual_machine" "vm" {
@@ -143,9 +177,6 @@ resource "azurerm_linux_virtual_machine" "vm" {
     sku       = "22_04-lts-gen2"
     version   = "latest"
   }
-
-  # Kører LAMP-installationsscriptet automatisk ved boot via cloud-init
-  custom_data = base64encode(templatefile("${path.module}/scripts/install_lamp.sh", {
-    db_root_password = var.db_root_password
-  }))
+  # Kører LAMP + Suricata automatisk ved første boot via cloud-init
+  custom_data = data.cloudinit_config.init.rendered
 }

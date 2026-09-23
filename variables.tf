@@ -18,7 +18,7 @@ variable "location" {
 variable "vm_size" {
   description = "VM-størrelse"
   type        = string
-  default     = "Standard_B1s" # billig, fin til test/øvelse
+  default     = "Standard_B2s" # billig, fin til test/øvelse
 }
 
 variable "admin_username" {
@@ -41,5 +41,11 @@ variable "admin_source_ip" {
 variable "db_root_password" {
   description = "Root-password til MariaDB, som sættes af install-scriptet"
   type        = string
+  sensitive   = true
+}
+variable "discord_webhook_url" {
+  description = "Discord webhook-URL til Suricata-alerts. Lad vaere tom for at springe over."
+  type        = string
+  default     = ""
   sensitive   = true
 }
