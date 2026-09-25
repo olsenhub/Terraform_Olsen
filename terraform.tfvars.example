@@ -35,3 +35,7 @@ dashboard_db_host     = "localhost"
 maxmind_account_id  = ""
 maxmind_license_key = ""
 geoip_db_password   = ""
+
+# Grafana admin-login (i stedet for default admin/admin)
+grafana_admin_user     = "admin"
+grafana_admin_password = ""

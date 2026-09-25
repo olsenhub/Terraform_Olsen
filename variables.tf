@@ -103,3 +103,18 @@ variable "geoip_db_password" {
   type        = string
   sensitive   = true
 }
+
+# ---------------------------------------------------------------------------
+# Grafana admin-login
+# ---------------------------------------------------------------------------
+variable "grafana_admin_user" {
+  description = "Brugernavn til Grafana admin-kontoen (i stedet for default 'admin')"
+  type        = string
+  default     = "admin"
+}
+
+variable "grafana_admin_password" {
+  description = "Password til Grafana admin-kontoen, saettes ved foerste boot af VM'en"
+  type        = string
+  sensitive   = true
+}

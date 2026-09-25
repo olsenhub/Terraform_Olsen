@@ -68,6 +68,14 @@ datasources:
     isDefault: true
 EOF
 
+# --- Admin-login: saettes FOER foerste opstart, da Grafana kun bruger
+#     disse vaerdier til at oprette admin-kontoen ved allerfoerste boot ---
+cat > /etc/grafana/grafana.ini <<EOF
+[security]
+admin_user = ${grafana_admin_user}
+admin_password = ${grafana_admin_password}
+EOF
+
 # --- Dashboard-provisioning: peger Grafana paa en mappe med dashboard-JSON,
 #     saa dashboards overlever selvom VM'en bliver genskabt ---
 mkdir -p /var/lib/grafana/dashboards
@@ -90,8 +98,10 @@ systemctl restart grafana-server
 #     som ogsaa loeser datasource-mapping (samme som "Import" i UI'en) ---
 apt-get install -y jq
 
+GRAFANA_AUTH="${grafana_admin_user}:${grafana_admin_password}"
+
 for i in 1 2 3 4 5 6 7 8 9 10; do
-  curl -sf http://admin:admin@localhost:3000/api/health >/dev/null 2>&1 && break
+  curl -sf -u "$GRAFANA_AUTH" http://localhost:3000/api/health >/dev/null 2>&1 && break
   sleep 3
 done
 
@@ -103,7 +113,7 @@ import_grafana_dashboard() {
   # (Node Exporter Full er 200+ KB) ellers rammer OS'ets groense for
   # kommandolinje-argumenter ("Argument list too long")
   payload="{\"dashboard\": $dash_json, \"overwrite\": true, \"inputs\": $inputs}"
-  echo "$payload" | curl -sf -u admin:admin -H "Content-Type: application/json" \
+  echo "$payload" | curl -sf -u "$GRAFANA_AUTH" -H "Content-Type: application/json" \
     -d @- http://localhost:3000/api/dashboards/import >/dev/null \
     && echo "Dashboard $dash_id importeret" \
     || echo "Kunne ikke importere dashboard $dash_id (grafana.com utilgaengelig?)"

@@ -192,8 +192,10 @@ data "cloudinit_config" "init" {
     content_type = "text/x-shellscript"
     filename     = "04-install_monitoring.sh"
     content = templatefile("${path.module}/scripts/install_monitoring.sh", {
-      dashboard_db_username = var.dashboard_db_username
-      dashboard_db_password = var.dashboard_db_password
+      dashboard_db_username  = var.dashboard_db_username
+      dashboard_db_password  = var.dashboard_db_password
+      grafana_admin_user     = var.grafana_admin_user
+      grafana_admin_password = var.grafana_admin_password
     })
   }
 

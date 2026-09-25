@@ -95,10 +95,8 @@ Dashboardet er sat op automatisk via cloud-init:
 - **Grafana** (port 3000) - selve dashboardet. NSG'en åbner kun port 3000 fra
   `admin_source_ip`, ligesom SSH.
 
-Efter `apply`, tjek `grafana_url` i output og log ind (default `admin`/`admin`
-— Grafana beder om nyt password første gang). Tilføj et dashboard via
-**Dashboards → Import** og indtast et af disse offentlige dashboard-ID'er:
-
+Admin-login til Grafana sættes via `grafana_admin_user`/`grafana_admin_password`
+i `terraform.tfvars`
 - `1860` - Node Exporter Full (CPU/RAM/disk/netværk/load)
 - `7362` - MySQL Overview (bruger mysqld_exporter-metrics)
 
@@ -121,18 +119,6 @@ via MaxMinds GeoLite2-City-database og gemmes i MariaDB
    maxmind_license_key = "din-license-key"
    geoip_db_password   = "et-selvvalgt-password"
    ```
-
-1. **Dashboards → New → New Dashboard → Add visualization**
-2. Vælg datasource **MariaDB**
-3. Query (skift til "Code"-visning i panel-editoren):
-   ```sql
-   SELECT lat, lon, country, city, source, event_time
-   FROM access_attempts
-   ORDER BY event_time DESC
-   LIMIT 500
-   ```
-4. Sæt visualiseringstype til **Geomap**, og under **Location** vælg
-   "Coords" med `lat`- og `lon`-felterne.
 
 ## Sikkerhedsnoter
 
