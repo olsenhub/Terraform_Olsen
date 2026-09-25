@@ -10,3 +10,28 @@ ssh_public_key_path  = "~/.ssh/terra.pub"
 admin_source_ip      = "185.73.72.112/32"
 db_root_password     = "Bordtennis4x12"
 discord_webhook_url  = ""
+
+# Ekstra Linux/SSH-brugere på VM'en (valgfrit, kan udelades / stå tom)
+additional_users = [
+  {
+    username            = "kim"
+    ssh_public_key_path = "~/.ssh/kim.pub"
+    sudo                = true
+  },
+  {
+    username            = "sanne"
+    ssh_public_key_path = "~/.ssh/sanne.pub"
+    sudo                = false
+  }
+]
+
+# Read-only MariaDB-bruger til dashboard
+dashboard_db_username = "dashboard_ro"
+dashboard_db_password = "SkiftMig123"
+dashboard_db_host     = "localhost"
+
+# GeoIP-kort over adgangsforsøg (SSH + Suricata) - kræver en gratis
+# MaxMind-konto, se README.md
+maxmind_account_id  = "123456"
+maxmind_license_key = "din-license-key"
+geoip_db_password   = "SkiftMigOgsaa456"

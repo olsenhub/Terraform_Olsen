@@ -34,6 +34,14 @@ DROP DATABASE IF EXISTS test;
 FLUSH PRIVILEGES;
 MYSQL_SCRIPT
 
+# Opret read-only bruger til dashboard (skal bruge password-auth, da root nu
+# er skiftet fra unix_socket til password ovenfor)
+mysql --user=root --password='${db_root_password}' <<MYSQL_SCRIPT
+CREATE USER IF NOT EXISTS '${dashboard_db_username}'@'${dashboard_db_host}' IDENTIFIED BY '${dashboard_db_password}';
+GRANT SELECT ON *.* TO '${dashboard_db_username}'@'${dashboard_db_host}';
+FLUSH PRIVILEGES;
+MYSQL_SCRIPT
+
 # --- PHP 8.1 (Ubuntu 22.04's standardversion) ---
 apt-get install -y php libapache2-mod-php php-mysql php-cli php-curl php-xml
 

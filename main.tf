@@ -93,6 +93,19 @@ resource "azurerm_network_security_group" "nsg" {
     source_address_prefix      = "*"
     destination_address_prefix = "*"
   }
+
+  # Grafana - kun fra admin_source_ip, ligesom SSH (ikke aabent for alle)
+  security_rule {
+    name                       = "Allow-Grafana"
+    priority                   = 130
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "3000"
+    source_address_prefix      = var.admin_source_ip
+    destination_address_prefix = "*"
+  }
 }
 
 resource "azurerm_subnet_network_security_group_association" "nsg_assoc" {
@@ -123,12 +136,38 @@ data "cloudinit_config" "init" {
   gzip          = false
   base64_encode = true
 
+  # Ekstra Linux/SSH-brugere - oprettes af cloud-init's users-modul, inden
+  # shell-scriptene nedenfor koerer
+  part {
+    content_type = "text/cloud-config"
+    filename     = "00-users.yaml"
+    content = "#cloud-config\n${yamlencode({
+      users = [
+        for u in var.additional_users : merge(
+          {
+            name                = u.username
+            shell               = "/bin/bash"
+            lock_passwd         = true
+            ssh_authorized_keys = [file(u.ssh_public_key_path)]
+          },
+          u.sudo ? {
+            groups = "sudo"
+            sudo   = "ALL=(ALL) NOPASSWD:ALL"
+          } : {}
+        )
+      ]
+    })}"
+  }
+
   # LAMP-stacken (templatefile, fordi den skal have db-passwordet)
   part {
     content_type = "text/x-shellscript"
     filename     = "01-install_lamp.sh"
     content = templatefile("${path.module}/scripts/install_lamp.sh", {
-      db_root_password = var.db_root_password
+      db_root_password      = var.db_root_password
+      dashboard_db_username = var.dashboard_db_username
+      dashboard_db_password = var.dashboard_db_password
+      dashboard_db_host     = var.dashboard_db_host
     })
   }
 
@@ -144,6 +183,34 @@ data "cloudinit_config" "init" {
     filename     = "03-install_discord_alerts.sh"
     content = templatefile("${path.module}/scripts/install_discord_alerts.sh", {
       discord_webhook_url = var.discord_webhook_url
+    })
+  }
+
+  # Monitoring: node_exporter + mysqld_exporter + Prometheus + Grafana -
+  # kraever at LAMP (og dashboard-DB-brugeren) er installeret
+  part {
+    content_type = "text/x-shellscript"
+    filename     = "04-install_monitoring.sh"
+    content = templatefile("${path.module}/scripts/install_monitoring.sh", {
+      dashboard_db_username = var.dashboard_db_username
+      dashboard_db_password = var.dashboard_db_password
+    })
+  }
+
+  # GeoIP: tagger SSH- og Suricata-adgangsforsoeg med lokation og gemmer dem
+  # i MariaDB, saa Grafana kan vise dem paa et verdenskort - kraever at
+  # Suricata og Grafana (monitoring) allerede er installeret
+  part {
+    content_type = "text/x-shellscript"
+    filename     = "05-install_geoip.sh"
+    content = templatefile("${path.module}/scripts/install_geoip.sh", {
+      db_root_password      = var.db_root_password
+      dashboard_db_username = var.dashboard_db_username
+      dashboard_db_password = var.dashboard_db_password
+      geoip_db_password     = var.geoip_db_password
+      maxmind_account_id    = var.maxmind_account_id
+      maxmind_license_key   = var.maxmind_license_key
+      geomap_dashboard_json = file("${path.module}/dashboards/access-geomap.json")
     })
   }
 }

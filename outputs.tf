@@ -12,3 +12,8 @@ output "web_url" {
   description = "URL til LAMP-webserveren"
   value       = "http://${azurerm_public_ip.pip.ip_address}"
 }
+
+output "grafana_url" {
+  description = "URL til Grafana-dashboardet (kun tilgaengelig fra admin_source_ip, default login admin/admin)"
+  value       = "http://${azurerm_public_ip.pip.ip_address}:3000"
+}

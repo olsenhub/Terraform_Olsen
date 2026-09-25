@@ -3,6 +3,10 @@
 Dette projekt opretter en Ubuntu Server 22.04 VM i Azure og installerer
 Apache, MariaDB og PHP 8.1 (LAMP) automatisk via cloud-init, når VM'en
 boot'er første gang.
+Derudover har vi også tilføjet er par nice-to-haves:
+2 users, phasix og malone. 
+grafana oversigt med geomap på IP'er af intruders.
+grafana oversigt med fuld overblik over ressourcer på VM.
 
 ## Filoversigt
 
@@ -10,7 +14,7 @@ boot'er første gang.
 - `variables.tf` – alle input-variabler
 - `outputs.tf` – IP-adresse, SSH-kommando og web-URL efter apply
 - `scripts/install_lamp.sh` – cloud-init-scriptet der installerer LAMP
-- `terraform.tfvars.example` – skabelon til dine egne værdier
+- `terraform.tfvars.example` – skabelon til vores egne værdier
 
 ## Forudsætninger
 
@@ -44,9 +48,6 @@ terraform plan
 terraform apply
 ```
 
-Efter `apply` får du IP-adressen og en SSH-kommando som output.
-Det tager typisk 1-2 minutter ekstra efter VM'en er "klar" i Azure,
-før cloud-init er færdig med at installere LAMP.
 
 Tjek status på selve VM'en:
 ```bash
@@ -64,12 +65,76 @@ Test i browseren:
 terraform destroy
 ```
 
+## Flere brugere
+
+- **Linux/SSH-brugere:** udover `admin_username` kan I tilføje flere
+  brugere via `additional_users` i `terraform.tfvars`, f.eks.:
+  ```hcl
+  additional_users = [
+    { username = "bruger",   ssh_public_key_path = "~/.ssh/bruger.pub",   sudo = true },
+    { username = "bruger2", ssh_public_key_path = "~/.ssh/bruger2.pub", sudo = false },
+  ]
+  ```
+  Brugerne oprettes af cloud-init ved første boot, hver med egen SSH-nøgle.
+  `sudo = true` giver adgang til `sudo` uden password; `sudo = false` giver
+  kun almindelig shell-adgang. NSG'en begrænser stadig SSH (port 22) til
+  `admin_source_ip`, uanset hvilken bruger man logger ind som.
+- **MariaDB read-only bruger:** `dashboard_db_username`/`dashboard_db_password`
+  opretter en bruger med kun `SELECT`-rettigheder, tænkt til et dashboard.
+  `dashboard_db_host` styrer hvor brugeren må forbinde fra (`localhost`
+  som standard, da NSG'en ikke åbner MySQL-porten 3306 udadtil).
+
+## Monitoring - Grafana + Prometheus + node_exporter
+
+Dashboardet er sat op automatisk via cloud-init:
+
+- **node_exporter** (port 9100) - CPU, RAM, disk, netværkstrafik, load.
+- **mysqld_exporter** (port 9104) - DB-metrics, forbinder via unix-socket med
+  den read-only `dashboard_db_username`-bruger fra MariaDB-afsnittet ovenfor.
+- **Prometheus** (port 9090, kun lokal) - samler metrics fra de to exportere.
+- **Grafana** (port 3000) - selve dashboardet. NSG'en åbner kun port 3000 fra
+  `admin_source_ip`, ligesom SSH.
+
+Efter `apply`, tjek `grafana_url` i output og log ind (default `admin`/`admin`
+— Grafana beder om nyt password første gang). Tilføj et dashboard via
+**Dashboards → Import** og indtast et af disse offentlige dashboard-ID'er:
+
+- `1860` - Node Exporter Full (CPU/RAM/disk/netværk/load)
+- `7362` - MySQL Overview (bruger mysqld_exporter-metrics)
+
+Vælg "Prometheus" som datasource, når I importerer.
+
+## GeoIP-kort over adgangsforsøg
+
+SSH-loginforsøg (fra `/var/log/auth.log`) og Suricata-alerts geolokaliseres
+via MaxMinds GeoLite2-City-database og gemmes i MariaDB
+(`security.access_attempts`), så de kan vises på et verdenskort i Grafana.
+
+**Forudsætninger:**
+
+1. Opret en gratis konto på https://www.maxmind.com/en/geolite2/signup
+2. Under **My Account → Manage License Keys** laver du en ny nøgle. Du får
+   både et **Account ID** og en **License Key**.
+3. Udfyld i `terraform.tfvars`:
+   ```hcl
+   maxmind_account_id  = "123456"
+   maxmind_license_key = "din-license-key"
+   geoip_db_password   = "et-selvvalgt-password"
+   ```
+
+1. **Dashboards → New → New Dashboard → Add visualization**
+2. Vælg datasource **MariaDB**
+3. Query (skift til "Code"-visning i panel-editoren):
+   ```sql
+   SELECT lat, lon, country, city, source, event_time
+   FROM access_attempts
+   ORDER BY event_time DESC
+   LIMIT 500
+   ```
+4. Sæt visualiseringstype til **Geomap**, og under **Location** vælg
+   "Coords" med `lat`- og `lon`-felterne.
+
 ## Sikkerhedsnoter
 
 - NSG'en åbner kun port 80/443 for alle, og port 22 kun for den IP du
   angiver i `admin_source_ip`.
-- `db_root_password` er markeret `sensitive` i Terraform, men ligger
-  i klartekst i `terraform.tfvars` — den fil er i `.gitignore`, så pas på
-  ikke selv at committe den.
-- Til rigtig produktion bør du overveje Azure Key Vault i stedet for at
-  sende passwords via custom_data.

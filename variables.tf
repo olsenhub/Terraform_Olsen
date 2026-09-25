@@ -49,3 +49,57 @@ variable "discord_webhook_url" {
   default     = ""
   sensitive   = true
 }
+
+# ---------------------------------------------------------------------------
+# Ekstra Linux/SSH-brugere på VM'en (ud over admin_username)
+# ---------------------------------------------------------------------------
+variable "additional_users" {
+  description = "Ekstra Linux-brugere der oprettes på VM'en via cloud-init, hver med egen SSH-nøgle"
+  type = list(object({
+    username            = string
+    ssh_public_key_path = string
+    sudo                = optional(bool, true)
+  }))
+  default = []
+}
+
+# ---------------------------------------------------------------------------
+# MariaDB read-only bruger til dashboard
+# ---------------------------------------------------------------------------
+variable "dashboard_db_username" {
+  description = "Brugernavn til read-only MariaDB-bruger til dashboardet"
+  type        = string
+  default     = "dashboard_ro"
+}
+
+variable "dashboard_db_password" {
+  description = "Password til read-only MariaDB-dashboard-brugeren"
+  type        = string
+  sensitive   = true
+}
+
+variable "dashboard_db_host" {
+  description = "Host dashboard-brugeren må forbinde fra ('localhost' for kun lokal adgang, '%' for alle)"
+  type        = string
+  default     = "localhost"
+}
+
+# ---------------------------------------------------------------------------
+# GeoIP: kort over hvorfra SSH- og Suricata-adgangsforsøg kommer
+# ---------------------------------------------------------------------------
+variable "maxmind_account_id" {
+  description = "MaxMind Account ID til GeoLite2-databasen (fra din MaxMind-konto)"
+  type        = string
+}
+
+variable "maxmind_license_key" {
+  description = "MaxMind License Key til GeoLite2-databasen (fra din MaxMind-konto)"
+  type        = string
+  sensitive   = true
+}
+
+variable "geoip_db_password" {
+  description = "Password til den interne MariaDB-bruger 'geoip_ingest', som ingestion-scriptet bruger til at skrive geo-taggede adgangsforsøg"
+  type        = string
+  sensitive   = true
+}
