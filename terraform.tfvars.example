@@ -8,7 +8,7 @@ vm_size              = "Standard_B1s"
 admin_username       = "bornholm"
 ssh_public_key_path  = "~/.ssh/terra.pub"
 admin_source_ip      = "185.73.72.112/32"
-db_root_password     = "Bordtennis4x12"
+db_root_password     = "example"
 discord_webhook_url  = ""
 
 # Ekstra Linux/SSH-brugere på VM'en (valgfrit, kan udelades / stå tom)
