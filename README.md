@@ -14,6 +14,8 @@ grafana oversigt med fuld overblik over ressourcer på VM.
 - `variables.tf` – alle input-variabler
 - `outputs.tf` – IP-adresse, SSH-kommando og web-URL efter apply
 - `scripts/install_lamp.sh` – cloud-init-scriptet der installerer LAMP
+- `scripts/install_mqtt.sh` – Mosquitto (TLS) + metrics-exporter til IoT-device
+- `dashboards/` – Grafana-dashboards (geomap, MQTT-broker)
 - `terraform.tfvars.example` – skabelon til vores egne værdier
 
 ## Forudsætninger
@@ -120,7 +122,59 @@ via MaxMinds GeoLite2-City-database og gemmes i MariaDB
    geoip_db_password   = "et-selvvalgt-password"
    ```
 
+## MQTT-broker (Mosquitto) til IoT-device
+
+Brokeren installeres af `scripts/install_mqtt.sh` og er klar til at modtage
+data fra en device. Payloaden er valgfri: brokeren sender bare beskeder
+videre/afviser dem ud fra topic, den parser ikke indholdet.
+
+- **TLS på port 8883.** Brugernavn, password og payload er krypteret.
+  Klartekst-porten 1883 lytter kun på `127.0.0.1` på VM'en (til test) og er
+  **ikke** åbnet i NSG'en.
+- **Login:** `mqtt_username`/`mqtt_password`. Brugeren må kun læse/skrive
+  topics under `iot/#` (ACL i `/etc/mosquitto/acl`).
+- **NSG:** port 8883 er åben for `mqtt_allowed_source`. Er den tom, bruges
+  `admin_source_ip`. Sæt den til devicens IP (`x.x.x.x/32`), når den er kendt.
+- **Certifikat:** ved første boot laves en egen CA (`ca.crt`) og et
+  servercertifikat (gyldigt 365 dage), som udstedes til VM'ens IP og, hvis
+  `dns_label` er sat, til `<label>.westeurope.cloudapp.azure.com`. Sæt
+  `dns_label` i `terraform.tfvars`, så certifikatet stadig passer, hvis IP'en
+  ændres. Devicen skal bruge `ca.crt` for at kunne verificere brokeren.
+- **Metrics:** en lille exporter (`mqtt-exporter`, port 9344, kun lokal)
+  læser brokerens `$SYS`-topics. Prometheus scraper dem, og dashboardet
+  **MQTT Broker** i Grafana viser klienter, beskeder/s og bytes/s.
+
+Hent CA-certifikatet til devicen:
+```bash
+terraform output -raw mqtt_ca_download   # giver en scp-kommando
+```
+
+Test udefra (fra `mqtt_allowed_source`):
+```bash
+mosquitto_pub --cafile mqtt-ca.crt -h <mqtt_host> -p 8883 \
+  -u iot_device -P <password> -t iot/test -m "hej"
+mosquitto_sub --cafile mqtt-ca.crt -h <mqtt_host> -p 8883 \
+  -u iot_device -P <password> -t 'iot/#' -v
+```
+
+Test på VM'en (uden TLS, kun via localhost):
+```bash
+mosquitto_pub -h 127.0.0.1 -p 1883 -u iot_device -P <password> -t iot/test -m "hej"
+sudo cat /var/log/mqtt-install.log
+```
+
+Flere device-brugere kan tilføjes på VM'en med
+`sudo mosquitto_passwd -b /etc/mosquitto/passwd <navn> <password>`, en linje
+`user <navn>` + `topic readwrite iot/<navn>/#` i `/etc/mosquitto/acl`, og
+`sudo systemctl restart mosquitto`.
+
+**Bemærk:** cloud-init (`custom_data`) kører kun ved første boot, så ændringer
+i scripts får Terraform til at **genskabe VM'en**. Det nulstiller MariaDB-data
+og Grafana-ændringer. Den offentlige IP er en separat statisk ressource og
+bevares. Certifikatet udløber efter 365 dage. Passwords må ikke indeholde
+tegnet `'`.
+
 ## Sikkerhedsnoter
 
-- NSG'en åbner kun port 80/443 for alle, og port 22 kun for den IP du
-  angiver i `admin_source_ip`.
+- NSG'en åbner port 80/443 for alle, port 22 og 3000 kun for den IP du
+  angiver i `admin_source_ip`, og MQTT (8883) kun for `mqtt_allowed_source`.

@@ -39,3 +39,9 @@ geoip_db_password   = ""
 # Grafana admin-login (i stedet for default admin/admin)
 grafana_admin_user     = "admin"
 grafana_admin_password = ""
+
+# MQTT-broker (Mosquitto, TLS paa 8883) til IoT-device
+mqtt_username       = "iot_device"
+mqtt_password       = ""
+mqtt_allowed_source = ""   # tom = admin_source_ip; saet til devicens IP (x.x.x.x/32) naar den er kendt
+dns_label           = ""   # valgfrit, globalt unikt Azure DNS-label (anbefalet, saa certifikatet overlever IP-skift)

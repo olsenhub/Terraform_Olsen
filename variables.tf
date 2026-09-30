@@ -118,3 +118,30 @@ variable "grafana_admin_password" {
   type        = string
   sensitive   = true
 }
+
+# ---------------------------------------------------------------------------
+# MQTT-broker (Mosquitto) til IoT-device
+# ---------------------------------------------------------------------------
+variable "mqtt_username" {
+  description = "Brugernavn som IoT-devicen logger ind på MQTT-brokeren med (må kun bruge topics under iot/#)"
+  type        = string
+  default     = "iot_device"
+}
+
+variable "mqtt_password" {
+  description = "Password til MQTT-brugeren (mqtt_username)"
+  type        = string
+  sensitive   = true
+}
+
+variable "mqtt_allowed_source" {
+  description = "Hvem må nå MQTT-porten 8883 (CIDR, fx devicens IP med /32, eller '*'). Tom = samme som admin_source_ip"
+  type        = string
+  default     = ""
+}
+
+variable "dns_label" {
+  description = "Valgfrit Azure DNS-label (giver <label>.<region>.cloudapp.azure.com). Skal være globalt unikt i regionen. Tom = kun IP"
+  type        = string
+  default     = ""
+}

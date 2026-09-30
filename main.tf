@@ -17,6 +17,13 @@ provider "azurerm" {
   features {}
   subscription_id = var.subscription_id
 }
+
+locals {
+  # MQTT-porten er som default kun aaben for admin_source_ip
+  mqtt_source = var.mqtt_allowed_source != "" ? var.mqtt_allowed_source : var.admin_source_ip
+  # Azure DNS-navn (kun hvis dns_label er sat) - bruges i MQTT-certifikatets SAN
+  mqtt_fqdn = var.dns_label != "" ? "${var.dns_label}.${var.location}.cloudapp.azure.com" : ""
+}
 # ---------------------------------------------------------------------------
 # Resource Group
 # ---------------------------------------------------------------------------
@@ -48,6 +55,7 @@ resource "azurerm_public_ip" "pip" {
   resource_group_name = azurerm_resource_group.rg.name
   allocation_method   = "Static"
   sku                 = "Standard"
+  domain_name_label   = var.dns_label != "" ? var.dns_label : null
 }
 
 # ---------------------------------------------------------------------------
@@ -104,6 +112,20 @@ resource "azurerm_network_security_group" "nsg" {
     source_port_range          = "*"
     destination_port_range     = "3000"
     source_address_prefix      = var.admin_source_ip
+    destination_address_prefix = "*"
+  }
+
+  # MQTT over TLS - kun fra mqtt_allowed_source. Klartekst-porten 1883 er
+  # med vilje IKKE aaben (brokeren lytter kun paa localhost der).
+  security_rule {
+    name                       = "Allow-MQTT-TLS"
+    priority                   = 140
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "8883"
+    source_address_prefix      = local.mqtt_source
     destination_address_prefix = "*"
   }
 }
@@ -213,6 +235,21 @@ data "cloudinit_config" "init" {
       maxmind_account_id    = var.maxmind_account_id
       maxmind_license_key   = var.maxmind_license_key
       geomap_dashboard_json = file("${path.module}/dashboards/access-geomap.json")
+    })
+  }
+
+  # MQTT-broker (Mosquitto + TLS) og metrics-exporter - kraever at monitoring
+  # (Prometheus/Grafana) allerede er installeret
+  part {
+    content_type = "text/x-shellscript"
+    filename     = "06-install_mqtt.sh"
+    content = templatefile("${path.module}/scripts/install_mqtt.sh", {
+      mqtt_username       = var.mqtt_username
+      mqtt_password       = var.mqtt_password
+      admin_username      = var.admin_username
+      public_ip           = azurerm_public_ip.pip.ip_address
+      public_fqdn         = local.mqtt_fqdn
+      mqtt_dashboard_json = file("${path.module}/dashboards/mqtt-broker.json")
     })
   }
 }

@@ -44,6 +44,11 @@ scrape_configs:
   - job_name: "mysqld_exporter"
     static_configs:
       - targets: ["localhost:9104"]
+
+  # MQTT-broker (exporteren installeres af install_mqtt.sh, som koerer efter dette script)
+  - job_name: "mqtt_broker"
+    static_configs:
+      - targets: ["localhost:9344"]
 EOF
 systemctl enable --now prometheus
 systemctl restart prometheus
@@ -62,6 +67,7 @@ cat > /etc/grafana/provisioning/datasources/prometheus.yaml <<'EOF'
 apiVersion: 1
 datasources:
   - name: Prometheus
+    uid: prometheus-ds
     type: prometheus
     access: proxy
     url: http://localhost:9090
