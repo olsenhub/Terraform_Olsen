@@ -153,6 +153,21 @@ locals {
         REFERENCES users(id) ON DELETE SET NULL
     ) ENGINE=InnoDB;
 
+    -- Logins til admin-panelet (webadmin.tf). password_hash er PHP's
+    -- password_hash(). Efter 5 forkerte logins laases kontoen i 15 min.
+    -- Den foerste konto oprettes af webadmin.tf ud fra terraform.tfvars.
+    CREATE TABLE IF NOT EXISTS admin_users (
+      id             INT          NOT NULL AUTO_INCREMENT,
+      username       VARCHAR(50)  NOT NULL,
+      password_hash  VARCHAR(255) NOT NULL,
+      failed_logins  INT          NOT NULL DEFAULT 0,
+      locked_until   DATETIME     NULL,
+      last_login     DATETIME     NULL,
+      created_at     DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      UNIQUE KEY uq_admin_users_username (username)
+    ) ENGINE=InnoDB;
+
     -- Hvem maa aabne hvilken doer LIGE NU (aktiv bruger, gyldig periode,
     -- aktiv doer, rollen har adgang). Backend slaar op her paa card_uid +
     -- device_id; PIN/ansigt/laast konto tjekkes bagefter i backend.

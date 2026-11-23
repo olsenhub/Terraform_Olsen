@@ -60,7 +60,12 @@ acceptabel ydeevne?
   `services/access_service/`, tests med `python3 -m unittest`) – MQTT
   `iot/door/<device_id>/request|response|status|command|enroll` ↔ MariaDB. Skriver
   også Mosquitto-ACL'en (overskriver cloud-init's).
-- `webadmin/mockups/`: statiske mockups af admin-portalen; design-system "LockdIn"
+- `webadmin.tf`: admin-panelet (PHP i `webadmin/app/`, kun `public/` serveres) på
+  Apache-vhost 8443 med TLS (MQTT-certifikatet) og `Require ip` = NSG-reglen
+  `Allow-WebAdmin` (`customer_admin_ips` + admin-IP'er). Konfig i
+  `/etc/lockdin-webadmin/config.json`. Første admin fra `webadmin_admin_*` i tfvars.
+  Panelet skriver kun i DB; fjernåbning/ansigt går via `door_commands` → servicen.
+- `webadmin/mockups/`: statiske mockups; design-system "LockdIn"
   på https://claude.ai/artifact/TkQbSza8DxsDG1D8YLmBWv.
 - Hemmeligheder ligger i `terraform.tfvars` (gitignored). Nye variabler skal også
   tilføjes til `terraform.tfvars.example` uden rigtige værdier.

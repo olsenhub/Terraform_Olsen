@@ -415,7 +415,8 @@ def main():
         lockout_minutes=int(env.get("LOCKOUT_MINUTES", 5)),
         open_seconds=int(env.get("OPEN_SECONDS", 5)),
     )
-    repo = Repository(host=env.get("DB_HOST", "localhost"), user=env["DB_USER"],
+    repo = Repository(host=env.get("DB_HOST", "localhost"), port=int(env.get("DB_PORT", 3306)),
+                      user=env["DB_USER"],
                       password=env["DB_PASSWORD"], database=env["DB_NAME"])
 
     client = make_client("lockdin-access-service")

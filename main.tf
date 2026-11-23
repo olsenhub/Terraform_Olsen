@@ -23,6 +23,8 @@ locals {
   admin_sources = distinct(concat([var.admin_source_ip], var.extra_admin_source_ips))
   # MQTT-porten er som default kun aaben for admin_source_ip
   mqtt_source = var.mqtt_allowed_source != "" ? var.mqtt_allowed_source : var.admin_source_ip
+  # Admin-panelet: kundens IT-team (customer_admin_ips) + vores egne admin-IP'er
+  webadmin_sources = distinct(concat(var.customer_admin_ips, local.admin_sources))
   # Azure DNS-navn (kun hvis dns_label er sat) - bruges i MQTT-certifikatets SAN
   mqtt_fqdn = var.dns_label != "" ? "${var.dns_label}.${var.location}.cloudapp.azure.com" : ""
 }
@@ -128,6 +130,20 @@ resource "azurerm_network_security_group" "nsg" {
     source_port_range          = "*"
     destination_port_range     = "8883"
     source_address_prefix      = local.mqtt_source
+    destination_address_prefix = "*"
+  }
+
+  # LockdIn admin-panel (HTTPS paa 8443) - kun kundens IT-team + vores egne
+  # admin-IP'er. Apache har samme whitelist (Require ip) som ekstra lag.
+  security_rule {
+    name                       = "Allow-WebAdmin"
+    priority                   = 150
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "8443"
+    source_address_prefixes    = local.webadmin_sources
     destination_address_prefix = "*"
   }
 }

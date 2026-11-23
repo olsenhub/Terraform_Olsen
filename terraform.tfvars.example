@@ -54,5 +54,11 @@ access_db_password = ""
 # Adgangs-service (access_service.tf) - egen MQTT-bruger paa VM'en, min. 12 tegn
 access_service_mqtt_password = ""
 
+# Admin-panel (webadmin.tf) - https://<ip>:8443
+customer_admin_ips      = []          # kundens IT-team, fx ["203.0.113.10/32"]; vores admin-IP'er har altid adgang
+webadmin_admin_username = "it-admin"
+webadmin_admin_password = ""          # min. 12 tegn, ingen ' " eller \
+webadmin_site_name      = "Filial"    # vises i bunden af panelet
+
 # Discord-besked med IP naar serveren er oppe (notify.tf) - tom = slaaet fra
 discord_deploy_webhook_url = ""

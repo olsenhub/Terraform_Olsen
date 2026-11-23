@@ -18,7 +18,9 @@ grafana oversigt med fuld overblik over ressourcer på VM.
 - `dashboards/` – Grafana-dashboards (geomap, MQTT-broker)
 - `access_service.tf` + `services/access_service/` – Python-daemon der tager imod
   adgangsanmodninger fra dørene over MQTT og afgør dem mod databasen
-- `webadmin/mockups/` – HTML/CSS-mockups af admin-portalen (LockdIn)
+- `webadmin.tf` + `webadmin/app/` – LockdIn admin-panel (PHP, HTTPS på 8443, kun
+  whitelistede IP'er) – se `webadmin/README.md`
+- `webadmin/mockups/` – de oprindelige HTML/CSS-mockups af admin-panelet
 - `terraform.tfvars.example` – skabelon til vores egne værdier
 
 ## Forudsætninger
