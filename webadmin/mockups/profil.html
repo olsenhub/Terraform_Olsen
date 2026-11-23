@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="da">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mette Hansen – LockdIn</title>
+<link rel="stylesheet" href="lockdin.css">
+<script>
+(function(){var k='lockdin-theme',h=document.documentElement;try{var s=localStorage.getItem(k);if(s)h.setAttribute('data-theme',s);}catch(e){}
+window.toggleTheme=function(){var n=h.getAttribute('data-theme')==='dark'?'light':'dark';h.setAttribute('data-theme',n);try{localStorage.setItem(k,n);}catch(e){}return false;};})();
+</script>
+</head>
+<body>
+<nav class="li-navbar"><div class="li-container">
+<a class="li-brand" href="profiler.html"><img src="lockdin-mark-white.png" alt="" width="31" height="34">LockdIn</a><ul class="li-nav"><li class="active"><a href="profiler.html">Profiler</a></li><li><a href="doere.html">Døre</a></li><li><a href="adgangslog.html">Adgangslog</a></li><li><a href="support.html">Support</a></li></ul>
+<div class="li-navbar-right">Logget ind som <b>it-admin</b> <a href="login.html">Log ud</a></div></div></nav>
+<div class="li-container">
+<div class="li-page-header"><h1>Mette Hansen <small>Receptionist</small></h1><div class="li-actions"><a class="li-btn" href="profiler.html">&larr; Tilbage</a></div></div>
+<div class="li-grid">
+<div>
+ <div class="li-panel"><div class="li-panel-heading"><h3 class="li-panel-title">Stamdata</h3></div><div class="li-panel-body">
+  <div class="li-row">
+   <div class="li-form-group"><label for="n">Navn</label><input id="n" class="li-input" value="Mette Hansen"></div>
+   <div class="li-form-group"><label for="r">Rolle</label><select id="r" class="li-select"><option selected>Receptionist</option><option>Bankrådgiver</option><option>Økonomimedarbejder</option><option>IT-ansvarlig</option><option>Gæst</option></select><span class="li-help">Adgang: Hoveddør, Reception</span></div>
+  </div>
+  <div class="li-row">
+   <div class="li-form-group"><label for="c">Kort-UID</label><input id="c" class="li-input li-mono" value="04:A3:2F:1B"><span class="li-help">Scan kortet på en læser eller skriv UID'et.</span></div>
+   <div class="li-form-group"><label for="p">Ny PIN</label><input id="p" class="li-input" type="password" placeholder="Uændret"><span class="li-help">4–6 cifre. Efterlad tom for at beholde nuværende.</span></div>
+  </div>
+  <div class="li-row">
+   <div class="li-form-group"><label for="vf">Gyldig fra</label><input id="vf" class="li-input" value="01-08-2026"></div>
+   <div class="li-form-group"><label for="vt">Gyldig til</label><input id="vt" class="li-input" placeholder="Ingen udløb"></div>
+  </div>
+  <div class="li-form-group"><label class="li-check"><input type="checkbox"> Fravælg ansigtsgenkendelse (bruger kort + PIN)</label></div>
+  <button class="li-btn li-btn-primary">Gem profil</button> <a class="li-btn" href="profiler.html">Annullér</a>
+ </div></div>
+ <div class="li-panel"><div class="li-panel-heading"><h3 class="li-panel-title">Seneste adgangsforsøg</h3><div class="li-actions"><a href="adgangslog.html">Hele loggen &rarr;</a></div></div>
+ <table class="li-table li-table-striped"><thead><tr><th>Tid</th><th>Dør</th><th>Metode</th><th>Resultat</th><th>Årsag</th></tr></thead><tbody>
+ <tr><td><code>23-11 14:06:02</code></td><td>Økonomiafdeling</td><td>RFID + ansigt</td><td><span class="li-label li-label-denied">Afvist</span></td><td><code>no_permission</code></td></tr>
+ <tr><td><code>23-11 14:05:31</code></td><td>Hoveddør</td><td>RFID + ansigt</td><td><span class="li-label li-label-granted">Godkendt</span></td><td class="li-muted">–</td></tr>
+ <tr><td><code>22-11 08:01:12</code></td><td>Hoveddør</td><td>RFID + PIN</td><td><span class="li-label li-label-granted">Godkendt</span></td><td class="li-muted">–</td></tr>
+ </tbody></table></div>
+</div>
+<div>
+ <div class="li-panel"><div class="li-panel-heading"><h3 class="li-panel-title">Ansigtsgenkendelse</h3></div><div class="li-panel-body">
+  <p style="margin:0 0 10px"><span class="li-label li-label-granted">Tilmeldt</span> 3 billeder · 12-08-2026</p>
+  <div class="li-form-group"><label for="d">Tilmeld via dør</label><select id="d" class="li-select"><option>Hoveddør (door-hoveddoer)</option><option>Økonomiafdeling (door-oekonomi)</option></select><span class="li-help">Personen stiller sig foran kameraet. Kun embeddings gemmes, ikke billeder.</span></div>
+  <button class="li-btn">Tilmeld ansigt igen</button>
+ </div></div>
+ <div class="li-panel"><div class="li-panel-heading"><h3 class="li-panel-title">Status</h3></div><div class="li-panel-body">
+  <dl class="li-dl"><dt>Status</dt><dd><span class="li-label li-label-granted">Aktiv</span></dd><dt>Forkerte PIN</dt><dd>0</dd><dt>Oprettet</dt><dd><code>01-08-2026</code></dd></dl>
+ </div><div class="li-panel-footer" style="font-size:13px"><button class="li-btn li-btn-sm li-btn-danger">Spær kort</button> <button class="li-btn li-btn-sm li-btn-danger">Deaktivér bruger</button><br><span class="li-help">Deaktivering bevarer loggen.</span></div></div>
+</div></div></div>
+<div class="li-container"><div class="li-footer">LockdIn adgangskontrol · Filial Roskilde · v0.3 · <a href="index.html">Alle mockups</a> · <a href="#" onclick="return toggleTheme()">Skift lyst/mørkt</a></div></div>
+</body>
+</html>

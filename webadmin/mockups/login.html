@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="da">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Log ind – LockdIn</title>
+<link rel="stylesheet" href="lockdin.css">
+<script>
+(function(){var k='lockdin-theme',h=document.documentElement;try{var s=localStorage.getItem(k);if(s)h.setAttribute('data-theme',s);}catch(e){}
+window.toggleTheme=function(){var n=h.getAttribute('data-theme')==='dark'?'light':'dark';h.setAttribute('data-theme',n);try{localStorage.setItem(k,n);}catch(e){}return false;};})();
+</script>
+</head>
+<body>
+
+<div class="li-login">
+<div class="li-panel">
+  <div class="li-login-head"><img src="lockdin-logo-white.png" alt="LockdIn" width="150"></div>
+  <div class="li-panel-body">
+    <div class="li-alert li-alert-danger"><strong>Forkert login.</strong> Tjek brugernavn og adgangskode.</div>
+    <div class="li-form-group"><label for="u">Brugernavn</label><input id="u" class="li-input" value="it-admin"></div>
+    <div class="li-form-group"><label for="p">Adgangskode</label><input id="p" class="li-input" type="password"></div>
+    <a class="li-btn li-btn-primary" href="profiler.html" style="width:100%;text-align:center;box-sizing:border-box">Log ind</a>
+  </div>
+  <div class="li-panel-footer">Kun tilgængelig fra kundens whitelistede IP-adresser. Alle logins logges.</div>
+</div></div>
+<div class="li-container"><div class="li-footer">LockdIn adgangskontrol · Filial Roskilde · v0.3 · <a href="index.html">Alle mockups</a> · <a href="#" onclick="return toggleTheme()">Skift lyst/mørkt</a></div></div>
+</body>
+</html>

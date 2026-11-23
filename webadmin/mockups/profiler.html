@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="da">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Profiler – LockdIn</title>
+<link rel="stylesheet" href="lockdin.css">
+<script>
+(function(){var k='lockdin-theme',h=document.documentElement;try{var s=localStorage.getItem(k);if(s)h.setAttribute('data-theme',s);}catch(e){}
+window.toggleTheme=function(){var n=h.getAttribute('data-theme')==='dark'?'light':'dark';h.setAttribute('data-theme',n);try{localStorage.setItem(k,n);}catch(e){}return false;};})();
+</script>
+</head>
+<body>
+<nav class="li-navbar"><div class="li-container">
+<a class="li-brand" href="profiler.html"><img src="lockdin-mark-white.png" alt="" width="31" height="34">LockdIn</a><ul class="li-nav"><li class="active"><a href="profiler.html">Profiler</a></li><li><a href="doere.html">Døre</a></li><li><a href="adgangslog.html">Adgangslog</a></li><li><a href="support.html">Support</a></li></ul>
+<div class="li-navbar-right">Logget ind som <b>it-admin</b> <a href="login.html">Log ud</a></div></div></nav>
+<div class="li-container">
+<div class="li-page-header"><h1>Profiler <small>6 aktive · 1 inaktiv</small></h1><div class="li-actions"><a class="li-btn" href="#">Udsted midlertidigt kort</a> <a class="li-btn li-btn-primary" href="profil.html">+ Ny profil</a></div></div>
+<div class="li-alert li-alert-success"><strong>Gemt.</strong> Profilen for Sara Nielsen er opdateret.</div>
+<div class="li-panel"><div class="li-panel-body li-toolbar">
+  <div class="li-form-group" style="flex:2"><label for="q">Søg</label><input id="q" class="li-input" placeholder="Navn eller kort-UID"></div>
+  <div class="li-form-group" style="flex:1"><label for="r">Rolle</label><select id="r" class="li-select"><option>Alle roller</option><option>Receptionist</option><option>Bankrådgiver</option><option>Økonomimedarbejder</option><option>IT-ansvarlig</option><option>Gæst</option></select></div>
+  <div class="li-form-group" style="flex:1"><label for="s">Status</label><select id="s" class="li-select"><option>Alle</option><option>Aktiv</option><option>Låst</option><option>Midlertidig</option><option>Inaktiv</option></select></div>
+  <button class="li-btn">Filtrér</button>
+</div></div>
+<div class="li-panel">
+<table class="li-table li-table-striped">
+<thead><tr><th>Navn</th><th>Rolle</th><th>Kort-UID</th><th class="li-check-cell">PIN sat</th><th class="li-check-cell">Ansigt</th><th>Status</th><th></th></tr></thead>
+<tbody><tr><td><a href="profil.html">Mette Hansen</a></td><td><span class="li-label li-label-default">Receptionist</span></td><td><code>04:A3:2F:1B</code></td>
+<td class="li-check-cell">Ja</td><td class="li-check-cell">Ja</td><td><span class="li-label li-label-granted">Aktiv</span></td>
+<td style="text-align:right"><a class="li-btn li-btn-sm" href="profil.html">Redigér</a></td></tr><tr><td><a href="profil.html">Jonas Pedersen</a></td><td><span class="li-label li-label-default">Bankrådgiver</span></td><td><code>04:7C:11:9E</code></td>
+<td class="li-check-cell">Ja</td><td class="li-check-cell">Ja</td><td><span class="li-label li-label-granted">Aktiv</span></td>
+<td style="text-align:right"><a class="li-btn li-btn-sm" href="profil.html">Redigér</a></td></tr><tr><td><a href="profil.html">Sara Nielsen</a></td><td><span class="li-label li-label-default">Økonomimedarbejder</span></td><td><code>04:19:D2:60</code></td>
+<td class="li-check-cell">Ja</td><td class="li-check-cell"><span class="li-muted">Nej</span></td><td><span class="li-label li-label-granted">Aktiv</span></td>
+<td style="text-align:right"><a class="li-btn li-btn-sm" href="profil.html">Redigér</a></td></tr><tr><td><a href="profil.html">Ali Hassan</a></td><td><span class="li-label li-label-default">IT-ansvarlig</span></td><td><code>04:E0:5A:33</code></td>
+<td class="li-check-cell">Ja</td><td class="li-check-cell">Ja</td><td><span class="li-label li-label-granted">Aktiv</span></td>
+<td style="text-align:right"><a class="li-btn li-btn-sm" href="profil.html">Redigér</a></td></tr><tr><td><a href="profil.html">Lone Kristensen</a></td><td><span class="li-label li-label-default">Bankrådgiver</span></td><td><code>04:2B:88:C4</code></td>
+<td class="li-check-cell">Ja</td><td class="li-check-cell">Ja</td><td><span class="li-label li-label-warning">Låst</span> <small class="li-help" style="display:inline">3 forkerte PIN</small></td>
+<td style="text-align:right"><a class="li-btn li-btn-sm" href="profil.html">Redigér</a></td></tr><tr><td><a href="profil.html">VVS Jensen ApS</a></td><td><span class="li-label li-label-default">Gæst</span></td><td><code>T-004</code></td>
+<td class="li-check-cell"><span class="li-muted">Nej</span></td><td class="li-check-cell"><span class="li-muted">Nej</span></td><td><span class="li-label li-label-warning">Midlertidig</span> <small class="li-help" style="display:inline">til 16:00</small></td>
+<td style="text-align:right"><a class="li-btn li-btn-sm" href="profil.html">Redigér</a></td></tr><tr><td><a href="profil.html">Peter Holm</a></td><td><span class="li-label li-label-default">Receptionist</span></td><td><code>–</code></td>
+<td class="li-check-cell"><span class="li-muted">Nej</span></td><td class="li-check-cell"><span class="li-muted">Nej</span></td><td><span class="li-label li-label-">Inaktiv</span></td>
+<td style="text-align:right"><a class="li-btn li-btn-sm" href="profil.html">Redigér</a></td></tr></tbody></table>
+<div class="li-panel-footer">Viser 7 af 7 profiler</div>
+</div></div>
+<div class="li-container"><div class="li-footer">LockdIn adgangskontrol · Filial Roskilde · v0.3 · <a href="index.html">Alle mockups</a> · <a href="#" onclick="return toggleTheme()">Skift lyst/mørkt</a></div></div>
+</body>
+</html>

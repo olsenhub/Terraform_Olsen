@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="da">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Døre – LockdIn</title>
+<link rel="stylesheet" href="lockdin.css">
+<script>
+(function(){var k='lockdin-theme',h=document.documentElement;try{var s=localStorage.getItem(k);if(s)h.setAttribute('data-theme',s);}catch(e){}
+window.toggleTheme=function(){var n=h.getAttribute('data-theme')==='dark'?'light':'dark';h.setAttribute('data-theme',n);try{localStorage.setItem(k,n);}catch(e){}return false;};})();
+</script>
+</head>
+<body>
+<nav class="li-navbar"><div class="li-container">
+<a class="li-brand" href="profiler.html"><img src="lockdin-mark-white.png" alt="" width="31" height="34">LockdIn</a><ul class="li-nav"><li><a href="profiler.html">Profiler</a></li><li class="active"><a href="doere.html">Døre</a></li><li><a href="adgangslog.html">Adgangslog</a></li><li><a href="support.html">Support</a></li></ul>
+<div class="li-navbar-right">Logget ind som <b>it-admin</b> <a href="login.html">Log ud</a></div></div></nav>
+<div class="li-container">
+<div class="li-page-header"><h1>Døre <small>2 i drift · 3 planlagt</small></h1><div class="li-actions"><a class="li-btn li-btn-primary" href="#">+ Tilføj dør</a></div></div>
+<div class="li-alert li-alert-danger"><strong>Dør offline.</strong> Økonomiafdeling har ikke sendt heartbeat siden 14:02. Tjek strøm og netværk på enheden.</div>
+<div class="li-panel"><div class="li-panel-heading"><h3 class="li-panel-title">Enheder</h3></div>
+<table class="li-table li-table-striped"><thead><tr><th>Dør</th><th>Device-ID</th><th>Status</th><th>Sidst set</th><th></th></tr></thead><tbody><tr><td><b>Hoveddør</b><br><span class="li-help" style="margin:0">Indgang</span></td><td><code>door-hoveddoer</code></td><td><span class="li-dot li-dot-online"></span>Online</td><td><code>14:12:40</code></td><td style="text-align:right"><a class="li-btn li-btn-sm" href="support.html">Åbn dør</a> <a class="li-btn li-btn-sm" href="#">Redigér</a></td></tr><tr><td><b>Reception</b><br><span class="li-help" style="margin:0">Stueetage</span></td><td><code>door-reception</code></td><td><span class="li-muted">Ikke installeret</span></td><td><code>–</code></td><td style="text-align:right"><a class="li-btn li-btn-sm" href="#">Redigér</a></td></tr><tr><td><b>Rådgivning</b><br><span class="li-help" style="margin:0">Stueetage</span></td><td><code>door-raadgivning</code></td><td><span class="li-muted">Ikke installeret</span></td><td><code>–</code></td><td style="text-align:right"><a class="li-btn li-btn-sm" href="#">Redigér</a></td></tr><tr><td><b>Økonomiafdeling</b><br><span class="li-help" style="margin:0">1. sal</span></td><td><code>door-oekonomi</code></td><td><span class="li-dot li-dot-offline"></span>Offline</td><td><code>14:02:11</code></td><td style="text-align:right"><a class="li-btn li-btn-sm" href="#">Redigér</a></td></tr><tr><td><b>Serverrum</b><br><span class="li-help" style="margin:0">Kælder</span></td><td><code>door-serverrum</code></td><td><span class="li-muted">Ikke installeret</span></td><td><code>–</code></td><td style="text-align:right"><a class="li-btn li-btn-sm" href="#">Redigér</a></td></tr></tbody></table></div>
+<div class="li-panel"><div class="li-panel-heading"><h3 class="li-panel-title">Adgang pr. rolle</h3><div class="li-actions"><button class="li-btn li-btn-sm li-btn-primary">Gem ændringer</button></div></div>
+<table class="li-table li-table-striped"><thead><tr><th>Dør</th><th class='li-check-cell'>Receptionist</th><th class='li-check-cell'>Bankrådgiver</th><th class='li-check-cell'>Økonomimedarbejder</th><th class='li-check-cell'>IT-ansvarlig</th><th class='li-check-cell'>Gæst</th></tr></thead><tbody><tr><td>Hoveddør</td><td class='li-check-cell'><input type='checkbox' checked></td><td class='li-check-cell'><input type='checkbox' checked></td><td class='li-check-cell'><input type='checkbox' checked></td><td class='li-check-cell'><input type='checkbox' checked></td><td class='li-check-cell'><input type='checkbox' checked></td></tr><tr><td>Reception</td><td class='li-check-cell'><input type='checkbox' checked></td><td class='li-check-cell'><input type='checkbox' checked></td><td class='li-check-cell'><input type='checkbox' checked></td><td class='li-check-cell'><input type='checkbox' checked></td><td class='li-check-cell'><input type='checkbox' ></td></tr><tr><td>Rådgivning</td><td class='li-check-cell'><input type='checkbox' ></td><td class='li-check-cell'><input type='checkbox' checked></td><td class='li-check-cell'><input type='checkbox' ></td><td class='li-check-cell'><input type='checkbox' checked></td><td class='li-check-cell'><input type='checkbox' ></td></tr><tr><td>Økonomiafdeling</td><td class='li-check-cell'><input type='checkbox' ></td><td class='li-check-cell'><input type='checkbox' ></td><td class='li-check-cell'><input type='checkbox' checked></td><td class='li-check-cell'><input type='checkbox' checked></td><td class='li-check-cell'><input type='checkbox' ></td></tr><tr><td>Serverrum</td><td class='li-check-cell'><input type='checkbox' ></td><td class='li-check-cell'><input type='checkbox' ></td><td class='li-check-cell'><input type='checkbox' ></td><td class='li-check-cell'><input type='checkbox' checked></td><td class='li-check-cell'><input type='checkbox' ></td></tr></tbody></table>
+<div class="li-panel-footer">Ændringer gælder med det samme for alle brugere med rollen.</div></div>
+</div>
+<div class="li-container"><div class="li-footer">LockdIn adgangskontrol · Filial Roskilde · v0.3 · <a href="index.html">Alle mockups</a> · <a href="#" onclick="return toggleTheme()">Skift lyst/mørkt</a></div></div>
+</body>
+</html>

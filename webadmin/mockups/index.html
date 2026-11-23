@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="da">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockups – LockdIn</title>
+<link rel="stylesheet" href="lockdin.css">
+<script>
+(function(){var k='lockdin-theme',h=document.documentElement;try{var s=localStorage.getItem(k);if(s)h.setAttribute('data-theme',s);}catch(e){}
+window.toggleTheme=function(){var n=h.getAttribute('data-theme')==='dark'?'light':'dark';h.setAttribute('data-theme',n);try{localStorage.setItem(k,n);}catch(e){}return false;};})();
+</script>
+</head>
+<body>
+<nav class="li-navbar"><div class="li-container">
+<a class="li-brand" href="profiler.html"><img src="lockdin-mark-white.png" alt="" width="31" height="34">LockdIn</a><ul class="li-nav"><li><a href="profiler.html">Profiler</a></li><li><a href="doere.html">Døre</a></li><li><a href="adgangslog.html">Adgangslog</a></li><li><a href="support.html">Support</a></li></ul>
+<div class="li-navbar-right">Logget ind som <b>it-admin</b> <a href="login.html">Log ud</a></div></div></nav>
+<div class="li-container"><div class="li-page-header"><h1>LockdIn – mockups <small>admin-portal</small></h1></div>
+<div class="li-panel"><table class="li-table li-table-striped"><thead><tr><th>Side</th><th>Indhold</th><th>Fil</th></tr></thead><tbody><tr><td><a href="login.html"><b>Log ind</b></a></td><td>Login for kundens IT-team (kun fra whitelistede IP'er)</td><td><code>login.html</code></td></tr><tr><td><a href="profiler.html"><b>Profiler</b></a></td><td>Oversigt over alle brugere med søgning og filtre</td><td><code>profiler.html</code></td></tr><tr><td><a href="profil.html"><b>Profil</b></a></td><td>Redigér én bruger: stamdata, kort, PIN, ansigt, status</td><td><code>profil.html</code></td></tr><tr><td><a href="doere.html"><b>Døre</b></a></td><td>Raspberry Pi-enheder, online-status og adgang pr. rolle</td><td><code>doere.html</code></td></tr><tr><td><a href="adgangslog.html"><b>Adgangslog</b></a></td><td>Alle adgangsforsøg med filtre og eksport</td><td><code>adgangslog.html</code></td></tr><tr><td><a href="support.html"><b>Support</b></a></td><td>Fjernverificering via kamera og midlertidige kort</td><td><code>support.html</code></td></tr></tbody></table>
+<div class="li-panel-footer">Statiske mockups uden backend. Lyst/mørkt tema skiftes i bunden af hver side.</div></div></div>
+<div class="li-container"><div class="li-footer">LockdIn adgangskontrol · Filial Roskilde · v0.3 · <a href="index.html">Alle mockups</a> · <a href="#" onclick="return toggleTheme()">Skift lyst/mørkt</a></div></div>
+</body>
+</html>

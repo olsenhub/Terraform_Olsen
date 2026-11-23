@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="da">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Adgangslog – LockdIn</title>
+<link rel="stylesheet" href="lockdin.css">
+<script>
+(function(){var k='lockdin-theme',h=document.documentElement;try{var s=localStorage.getItem(k);if(s)h.setAttribute('data-theme',s);}catch(e){}
+window.toggleTheme=function(){var n=h.getAttribute('data-theme')==='dark'?'light':'dark';h.setAttribute('data-theme',n);try{localStorage.setItem(k,n);}catch(e){}return false;};})();
+</script>
+</head>
+<body>
+<nav class="li-navbar"><div class="li-container">
+<a class="li-brand" href="profiler.html"><img src="lockdin-mark-white.png" alt="" width="31" height="34">LockdIn</a><ul class="li-nav"><li><a href="profiler.html">Profiler</a></li><li><a href="doere.html">Døre</a></li><li class="active"><a href="adgangslog.html">Adgangslog</a></li><li><a href="support.html">Support</a></li></ul>
+<div class="li-navbar-right">Logget ind som <b>it-admin</b> <a href="login.html">Log ud</a></div></div></nav>
+<div class="li-container">
+<div class="li-page-header"><h1>Adgangslog <small>i dag: 148 forsøg · 9 afvist</small></h1><div class="li-actions"><a class="li-btn" href="#">Eksportér CSV</a></div></div>
+<div class="li-panel"><div class="li-panel-body li-toolbar">
+  <div class="li-form-group"><label for="f">Fra</label><input id="f" class="li-input" value="23-11-2026"></div>
+  <div class="li-form-group"><label for="t">Til</label><input id="t" class="li-input" value="23-11-2026"></div>
+  <div class="li-form-group"><label for="d">Dør</label><select id="d" class="li-select"><option>Alle døre</option><option>Hoveddør</option><option>Økonomiafdeling</option></select></div>
+  <div class="li-form-group"><label for="m">Metode</label><select id="m" class="li-select"><option>Alle</option><option>RFID + ansigt</option><option>RFID + PIN</option><option>Support</option></select></div>
+  <div class="li-form-group"><label for="g">Resultat</label><select id="g" class="li-select"><option>Alle</option><option>Godkendt</option><option>Afvist</option></select></div>
+  <button class="li-btn li-btn-primary">Filtrér</button>
+</div></div>
+<div class="li-panel">
+<table class="li-table li-table-striped"><thead><tr><th>Tid</th><th>Dør</th><th>Bruger</th><th>Metode</th><th>Resultat</th><th>Årsag</th><th class="li-num">Svartid</th></tr></thead><tbody><tr><td><code>23-11 14:12:10</code></td><td>Hoveddør</td><td>VVS Jensen ApS</td><td>Support</td><td><span class="li-label li-label-granted">Godkendt</span></td><td>åbnet af it-admin</td><td class="li-num">–</td></tr><tr><td><code>23-11 14:09:47</code></td><td>Hoveddør</td><td><span class=li-muted>Ukendt kort</span></td><td>RFID + PIN</td><td><span class="li-label li-label-denied">Afvist</span></td><td><code>unknown_card</code></td><td class="li-num">95 ms</td></tr><tr><td><code>23-11 14:06:02</code></td><td>Økonomiafdeling</td><td>Mette Hansen</td><td>RFID + ansigt</td><td><span class="li-label li-label-denied">Afvist</span></td><td><code>no_permission</code></td><td class="li-num">388 ms</td></tr><tr><td><code>23-11 14:05:31</code></td><td>Hoveddør</td><td>Mette Hansen</td><td>RFID + ansigt</td><td><span class="li-label li-label-granted">Godkendt</span></td><td><span class=li-muted>–</span></td><td class="li-num">412 ms</td></tr><tr><td><code>23-11 13:58:20</code></td><td>Hoveddør</td><td>Lone Kristensen</td><td>RFID + PIN</td><td><span class="li-label li-label-denied">Afvist</span></td><td>locked</td><td class="li-num">71 ms</td></tr><tr><td><code>23-11 13:57:51</code></td><td>Hoveddør</td><td>Lone Kristensen</td><td>RFID + PIN</td><td><span class="li-label li-label-denied">Afvist</span></td><td><code>wrong_pin</code></td><td class="li-num">84 ms</td></tr><tr><td><code>23-11 13:40:02</code></td><td>Økonomiafdeling</td><td>Sara Nielsen</td><td>RFID + PIN</td><td><span class="li-label li-label-granted">Godkendt</span></td><td><span class=li-muted>–</span></td><td class="li-num">102 ms</td></tr><tr><td><code>23-11 12:15:58</code></td><td>Hoveddør</td><td>Jonas Pedersen</td><td>RFID + PIN</td><td><span class="li-label li-label-granted">Godkendt</span></td><td><span class=li-muted>–</span></td><td class="li-num">90 ms</td></tr><tr><td><code>23-11 12:15:44</code></td><td>Hoveddør</td><td>Jonas Pedersen</td><td>RFID + ansigt</td><td><span class="li-label li-label-denied">Afvist</span></td><td><code>face_mismatch</code></td><td class="li-num">465 ms</td></tr><tr><td><code>23-11 08:02:13</code></td><td>Økonomiafdeling</td><td>Ali Hassan</td><td>RFID + ansigt</td><td><span class="li-label li-label-granted">Godkendt</span></td><td><span class=li-muted>–</span></td><td class="li-num">397 ms</td></tr></tbody></table>
+<div class="li-panel-footer" style="display:flex;align-items:center">Viser 1–10 af 148
+<ul class="li-pagination" style="margin-left:auto"><li><a href="#">&laquo;</a></li><li class="active"><span>1</span></li><li><a href="#">2</a></li><li><a href="#">3</a></li><li><a href="#">&raquo;</a></li></ul></div>
+</div></div>
+<div class="li-container"><div class="li-footer">LockdIn adgangskontrol · Filial Roskilde · v0.3 · <a href="index.html">Alle mockups</a> · <a href="#" onclick="return toggleTheme()">Skift lyst/mørkt</a></div></div>
+</body>
+</html>

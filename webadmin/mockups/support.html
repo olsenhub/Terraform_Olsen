@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="da">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Support – LockdIn</title>
+<link rel="stylesheet" href="lockdin.css">
+<script>
+(function(){var k='lockdin-theme',h=document.documentElement;try{var s=localStorage.getItem(k);if(s)h.setAttribute('data-theme',s);}catch(e){}
+window.toggleTheme=function(){var n=h.getAttribute('data-theme')==='dark'?'light':'dark';h.setAttribute('data-theme',n);try{localStorage.setItem(k,n);}catch(e){}return false;};})();
+</script>
+</head>
+<body>
+<nav class="li-navbar"><div class="li-container">
+<a class="li-brand" href="profiler.html"><img src="lockdin-mark-white.png" alt="" width="31" height="34">LockdIn</a><ul class="li-nav"><li><a href="profiler.html">Profiler</a></li><li><a href="doere.html">Døre</a></li><li><a href="adgangslog.html">Adgangslog</a></li><li class="active"><a href="support.html">Support</a></li></ul>
+<div class="li-navbar-right">Logget ind som <b>it-admin</b> <a href="login.html">Log ud</a></div></div></nav>
+<div class="li-container">
+<div class="li-page-header"><h1>Fjernsupport <small>glemt kort / gæster</small></h1></div>
+<div class="li-alert li-alert-warning"><strong>Opkald fra Hoveddør.</strong> Person uden kort beder om adgang · venter 0:42</div>
+<div class="li-grid">
+<div class="li-panel"><div class="li-panel-heading"><h3 class="li-panel-title">Kamera: Hoveddør</h3><div class="li-actions"><span class="li-dot li-dot-online"></span>Live</div></div>
+<div class="li-panel-body"><div class="li-cam"><span class="rec">● LIVE  door-hoveddoer</span>Kamerabillede fra døren</div></div>
+<div class="li-panel-footer"><button class="li-btn li-btn-sm">Tal via højttaler</button> <button class="li-btn li-btn-sm">Tag stillbillede</button></div></div>
+<div>
+<div class="li-panel"><div class="li-panel-heading"><h3 class="li-panel-title">Verificér person</h3></div><div class="li-panel-body">
+ <div class="li-form-group"><label for="w">Hvem er det?</label><select id="w" class="li-select"><option>Vælg medarbejder …</option><option>Mette Hansen (Receptionist)</option><option>Jonas Pedersen (Bankrådgiver)</option><option>Ekstern / gæst</option></select></div>
+ <div class="li-form-group"><label for="why">Begrundelse</label><input id="why" class="li-input" value="Glemt kort, genkendt på kamera"><span class="li-help">Gemmes i adgangsloggen sammen med dit brugernavn.</span></div>
+ <button class="li-btn li-btn-primary">Åbn dør én gang</button> <button class="li-btn li-btn-danger">Afvis</button>
+</div></div>
+<div class="li-panel"><div class="li-panel-heading"><h3 class="li-panel-title">Midlertidigt kort</h3></div><div class="li-panel-body">
+ <div class="li-form-group"><label for="tc">Kort-UID</label><input id="tc" class="li-input li-mono" value="T-005"></div>
+ <div class="li-form-group"><label for="tu">Gyldigt til</label><select id="tu" class="li-select"><option>I dag kl. 16:00</option><option>I dag kl. 23:59</option><option>I morgen kl. 16:00</option></select><span class="li-help">Giver rollen "Gæst": kun hoveddøren.</span></div>
+ <button class="li-btn">Udsted kort</button>
+</div></div>
+</div></div></div>
+<div class="li-container"><div class="li-footer">LockdIn adgangskontrol · Filial Roskilde · v0.3 · <a href="index.html">Alle mockups</a> · <a href="#" onclick="return toggleTheme()">Skift lyst/mørkt</a></div></div>
+</body>
+</html>
