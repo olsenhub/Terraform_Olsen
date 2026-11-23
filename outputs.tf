@@ -40,7 +40,7 @@ output "access_db_name" {
 
 output "webadmin_url" {
   description = "LockdIn admin-panel (kun fra customer_admin_ips + admin-IP'er). Importer mqtt-ca.crt i browseren for at undgaa certifikat-advarslen."
-  value       = "https://${local.mqtt_fqdn != "" ? local.mqtt_fqdn : azurerm_public_ip.pip.ip_address}:8443"
+  value       = "https://${local.deploy_host}:8443"
 }
 
 output "phpmyadmin_tunnel" {

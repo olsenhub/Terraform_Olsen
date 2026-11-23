@@ -7,7 +7,8 @@
 # der koerer terraform apply - kraever curl. Springes over, hvis
 # discord_deploy_webhook_url er tom.
 #
-# Venter paa schema + phpMyAdmin, saa beskeden foerst kommer, naar alt er klar.
+# Venter paa schema, phpMyAdmin, adgangs-servicen og admin-panelet, saa
+# beskeden foerst kommer, naar alt er klar - ogsaa linket til admin-panelet.
 # ---------------------------------------------------------------------------
 
 locals {
@@ -24,6 +25,8 @@ locals {
         # Kun gruppens egne brugere - admin-brugeren (root) vises med vilje ikke.
         # Privat noegle = ssh_public_key_path uden .pub (kun stien, ingen hemmelighed)
         { name = "SSH", value = join("\n", [for u in var.additional_users : "`ssh -i ${u.ssh_private_key_hint != "" ? u.ssh_private_key_hint : trimsuffix(u.ssh_public_key_path, ".pub")} ${u.username}@${azurerm_public_ip.pip.ip_address}`"]) },
+        # Bar URL (ikke i backticks), saa Discord goer den klikbar
+        { name = "Admin-panel (LockdIn)", value = "https://${local.deploy_host}:8443\nKun fra whitelistede IP'er. Certifikat-advarsel? Importer mqtt-ca.crt som betroet CA." },
         { name = "Grafana", value = "http://${azurerm_public_ip.pip.ip_address}:3000" },
         { name = "MQTT", value = "`mqtts://${local.deploy_host}:8883`" },
         { name = "phpMyAdmin", value = "`ssh -N -L 8080:localhost:80 <dit-brugernavn>@${azurerm_public_ip.pip.ip_address}`\n-> http://localhost:8080/phpmyadmin" },
@@ -44,6 +47,8 @@ resource "terraform_data" "discord_deploy_notify" {
   depends_on = [
     terraform_data.access_db_schema,
     terraform_data.phpmyadmin,
+    terraform_data.access_service,
+    terraform_data.webadmin,
   ]
 
   provisioner "local-exec" {
