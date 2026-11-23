@@ -199,6 +199,18 @@ variable "access_db_host" {
 # ---------------------------------------------------------------------------
 # Discord-besked med IP naar serveren er deployet (notify.tf)
 # ---------------------------------------------------------------------------
+variable "access_service_mqtt_password" {
+  description = "MQTT-password til adgangs-servicen (access_service.tf) - brugeren 'access_service' paa den lokale listener"
+  type        = string
+  sensitive   = true
+
+  validation {
+    # Ingen anfoerselstegn/backslash: passwordet indsaettes i et bash-script
+    condition     = length(var.access_service_mqtt_password) >= 12 && !can(regex("['\"\\\\]", var.access_service_mqtt_password))
+    error_message = "access_service_mqtt_password skal vaere mindst 12 tegn og maa ikke indeholde ' \" eller \\."
+  }
+}
+
 variable "discord_deploy_webhook_url" {
   description = "Discord webhook-URL til besked med IP/forbindelsesinfo naar VM'en er oppe. Tom = slaaet fra"
   type        = string

@@ -120,6 +120,39 @@ locals {
         REFERENCES users(id) ON DELETE SET NULL
     ) ENGINE=InnoDB;
 
+    -- Tilfoejet til adgangs-servicen (services/access_service). ALTER med
+    -- IF NOT EXISTS, fordi tabellerne allerede findes paa den koerende VM.
+    --   doors.last_seen/is_online: heartbeat fra doer-enheden (MQTT .../status)
+    --   access_log.note: fritekst ved support-aabning ("glemt kort, genkendt")
+    ALTER TABLE doors
+      ADD COLUMN IF NOT EXISTS last_seen DATETIME NULL,
+      ADD COLUMN IF NOT EXISTS is_online BOOLEAN  NOT NULL DEFAULT FALSE;
+    ALTER TABLE access_log
+      ADD COLUMN IF NOT EXISTS note VARCHAR(255) NULL AFTER support_operator;
+
+    -- Kommandoer fra admin-siden til en doer. Servicen poller raekker med
+    -- processed_at IS NULL og sender dem til doeren over MQTT (.../command).
+    --   open:        fjernaabning fra support (logges i access_log som 'support')
+    --   enroll_face: doerens kamera tager ansigt til user_id og sender
+    --                embeddingen tilbage (.../enroll)
+    CREATE TABLE IF NOT EXISTS door_commands (
+      id            INT          NOT NULL AUTO_INCREMENT,
+      door_id       INT          NOT NULL,
+      action        ENUM('open','enroll_face') NOT NULL,
+      user_id       INT          NULL,
+      requested_by  VARCHAR(100) NOT NULL,
+      reason        VARCHAR(255) NULL,
+      created_at    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      processed_at  DATETIME     NULL,
+      result        VARCHAR(64)  NULL,
+      PRIMARY KEY (id),
+      KEY idx_door_commands_pending (processed_at, id),
+      CONSTRAINT fk_door_commands_door FOREIGN KEY (door_id)
+        REFERENCES doors(id) ON DELETE CASCADE,
+      CONSTRAINT fk_door_commands_user FOREIGN KEY (user_id)
+        REFERENCES users(id) ON DELETE SET NULL
+    ) ENGINE=InnoDB;
+
     -- Hvem maa aabne hvilken doer LIGE NU (aktiv bruger, gyldig periode,
     -- aktiv doer, rollen har adgang). Backend slaar op her paa card_uid +
     -- device_id; PIN/ansigt/laast konto tjekkes bagefter i backend.

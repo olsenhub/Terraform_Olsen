@@ -56,6 +56,12 @@ acceptabel ydeevne?
 - `phpmyadmin.tf`: phpMyAdmin over SSH-provisioner, kun `Require local` – tilgås via
   SSH-tunnel (`terraform output phpmyadmin_tunnel`).
 - Grafana-dashboards i `dashboards/`.
+- `access_service.tf`: Python-daemonen `lockdin-access` (kode i
+  `services/access_service/`, tests med `python3 -m unittest`) – MQTT
+  `iot/door/<device_id>/request|response|status|command|enroll` ↔ MariaDB. Skriver
+  også Mosquitto-ACL'en (overskriver cloud-init's).
+- `webadmin/mockups/`: statiske mockups af admin-portalen; design-system "LockdIn"
+  på https://claude.ai/artifact/TkQbSza8DxsDG1D8YLmBWv.
 - Hemmeligheder ligger i `terraform.tfvars` (gitignored). Nye variabler skal også
   tilføjes til `terraform.tfvars.example` uden rigtige værdier.
 

@@ -16,6 +16,9 @@ grafana oversigt med fuld overblik over ressourcer på VM.
 - `scripts/install_lamp.sh` – cloud-init-scriptet der installerer LAMP
 - `scripts/install_mqtt.sh` – Mosquitto (TLS) + metrics-exporter til IoT-device
 - `dashboards/` – Grafana-dashboards (geomap, MQTT-broker)
+- `access_service.tf` + `services/access_service/` – Python-daemon der tager imod
+  adgangsanmodninger fra dørene over MQTT og afgør dem mod databasen
+- `webadmin/mockups/` – HTML/CSS-mockups af admin-portalen (LockdIn)
 - `terraform.tfvars.example` – skabelon til vores egne værdier
 
 ## Forudsætninger
