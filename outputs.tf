@@ -32,3 +32,13 @@ output "mqtt_ca_download" {
   description = "Kommando til at hente CA-certifikatet, som devicen skal have for at verificere brokeren"
   value       = "scp ${var.admin_username}@${azurerm_public_ip.pip.ip_address}:mqtt-ca.crt ."
 }
+
+output "access_db_name" {
+  description = "Navn paa adgangskontrol-databasen"
+  value       = var.access_db_name
+}
+
+output "phpmyadmin_tunnel" {
+  description = "phpMyAdmin er kun tilgaengelig via SSH-tunnel: koer kommandoen og aabn http://localhost:8080/phpmyadmin"
+  value       = "ssh -N -L 8080:localhost:80 ${var.admin_username}@${azurerm_public_ip.pip.ip_address}"
+}

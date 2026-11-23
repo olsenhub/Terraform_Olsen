@@ -19,6 +19,8 @@ provider "azurerm" {
 }
 
 locals {
+  # Alle IP'er der maa SSH'e ind og se Grafana (admin_source_ip + evt. hjemmeadresser)
+  admin_sources = distinct(concat([var.admin_source_ip], var.extra_admin_source_ips))
   # MQTT-porten er som default kun aaben for admin_source_ip
   mqtt_source = var.mqtt_allowed_source != "" ? var.mqtt_allowed_source : var.admin_source_ip
   # Azure DNS-navn (kun hvis dns_label er sat) - bruges i MQTT-certifikatets SAN
@@ -74,7 +76,7 @@ resource "azurerm_network_security_group" "nsg" {
     protocol                   = "Tcp"
     source_port_range          = "*"
     destination_port_range     = "22"
-    source_address_prefix      = var.admin_source_ip
+    source_address_prefixes    = local.admin_sources
     destination_address_prefix = "*"
   }
 
@@ -102,7 +104,7 @@ resource "azurerm_network_security_group" "nsg" {
     destination_address_prefix = "*"
   }
 
-  # Grafana - kun fra admin_source_ip, ligesom SSH (ikke aabent for alle)
+  # Grafana - kun fra admin_source_ip/extra_admin_source_ips, ligesom SSH (ikke aabent for alle)
   security_rule {
     name                       = "Allow-Grafana"
     priority                   = 130
@@ -111,7 +113,7 @@ resource "azurerm_network_security_group" "nsg" {
     protocol                   = "Tcp"
     source_port_range          = "*"
     destination_port_range     = "3000"
-    source_address_prefix      = var.admin_source_ip
+    source_address_prefixes    = local.admin_sources
     destination_address_prefix = "*"
   }
 
@@ -164,7 +166,9 @@ data "cloudinit_config" "init" {
     content_type = "text/cloud-config"
     filename     = "00-users.yaml"
     content = "#cloud-config\n${yamlencode({
-      users = [
+      # "default" SKAL med: ellers oprettes Azures admin-bruger (admin_username)
+      # ikke, og SSH som admin fejler (Permission denied (publickey)).
+      users = concat(["default"], [
         for u in var.additional_users : merge(
           {
             name                = u.username
@@ -177,7 +181,7 @@ data "cloudinit_config" "init" {
             sudo   = "ALL=(ALL) NOPASSWD:ALL"
           } : {}
         )
-      ]
+      ])
     })}"
   }
 

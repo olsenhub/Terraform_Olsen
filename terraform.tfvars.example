@@ -8,6 +8,7 @@ vm_size              = "Standard_B1s"
 admin_username       = ""
 ssh_public_key_path  = "~/.ssh/terra.pub"
 admin_source_ip      = "185.73.72.112/32"
+extra_admin_source_ips = []   # fx ["x.x.x.x/32", "y.y.y.y/32"] - hjemmeadresser
 db_root_password     = ""
 discord_webhook_url  = ""
 
@@ -45,3 +46,10 @@ mqtt_username       = "iot_device"
 mqtt_password       = ""
 mqtt_allowed_source = ""   # tom = admin_source_ip; saet til devicens IP (x.x.x.x/32) naar den er kendt
 dns_label           = ""   # valgfrit, globalt unikt Azure DNS-label (anbefalet, saa certifikatet overlever IP-skift)
+
+# Adgangskontrol-database (database.tf)
+access_db_password = ""
+# ssh_private_key_path = ""   # tom = ssh-agent; kun en sti hvis noeglen IKKE har passphrase
+
+# Discord-besked med IP naar serveren er oppe (notify.tf) - tom = slaaet fra
+discord_deploy_webhook_url = ""

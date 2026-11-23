@@ -80,7 +80,7 @@ terraform destroy
   Brugerne oprettes af cloud-init ved første boot, hver med egen SSH-nøgle.
   `sudo = true` giver adgang til `sudo` uden password; `sudo = false` giver
   kun almindelig shell-adgang. NSG'en begrænser stadig SSH (port 22) til
-  `admin_source_ip`, uanset hvilken bruger man logger ind som.
+  `admin_source_ip` + `extra_admin_source_ips`, uanset hvilken bruger man logger ind som.
 - **MariaDB read-only bruger:** `dashboard_db_username`/`dashboard_db_password`
   opretter en bruger med kun `SELECT`-rettigheder, tænkt til et dashboard.
   `dashboard_db_host` styrer hvor brugeren må forbinde fra (`localhost`
@@ -95,7 +95,7 @@ Dashboardet er sat op automatisk via cloud-init:
   den read-only `dashboard_db_username`-bruger fra MariaDB-afsnittet ovenfor.
 - **Prometheus** (port 9090, kun lokal) - samler metrics fra de to exportere.
 - **Grafana** (port 3000) - selve dashboardet. NSG'en åbner kun port 3000 fra
-  `admin_source_ip`, ligesom SSH.
+  `admin_source_ip` + `extra_admin_source_ips`, ligesom SSH.
 
 Admin-login til Grafana sættes via `grafana_admin_user`/`grafana_admin_password`
 i `terraform.tfvars`
@@ -176,5 +176,36 @@ tegnet `'`.
 
 ## Sikkerhedsnoter
 
-- NSG'en åbner port 80/443 for alle, port 22 og 3000 kun for den IP du
-  angiver i `admin_source_ip`, og MQTT (8883) kun for `mqtt_allowed_source`.
+- NSG'en åbner port 80/443 for alle, port 22 og 3000 kun for de IP'er du
+  angiver i `admin_source_ip` og `extra_admin_source_ips` (fx hjemmeadresser), og MQTT (8883) kun for `mqtt_allowed_source`.
+
+## Adgangskontrol-database (`database.tf`)
+
+Skemaet til adgangskontrollen (`doors`, `users`, `door_access`,
+`access_log`) står direkte i `database.tf` og oprettes i MariaDB på VM'en
+over SSH ved `terraform apply` - VM'en genskabes **ikke**. Ændres SQL'en,
+køres den automatisk igen ved næste apply.
+
+Kræver i `terraform.tfvars`:
+```hcl
+access_db_password = "..."
+# ssh_private_key_path = "~/.ssh/id_ed25519"   # hvis ikke default
+```
+
+Backend/dør-enheder bruger `access_app` (SELECT/INSERT/UPDATE/DELETE på
+`adgangskontrol`). Dashboard-brugeren kan allerede læse den via sin
+`SELECT ON *.*`.
+
+## phpMyAdmin (`phpmyadmin.tf`)
+
+Installeres på VM'en over SSH ved `terraform apply` (VM'en genskabes ikke).
+Af sikkerhedshensyn svarer phpMyAdmin **kun på forespørgsler fra VM'en
+selv** - port 80 er åben for alle og ukrypteret. Brug en SSH-tunnel:
+
+```bash
+terraform output -raw phpmyadmin_tunnel   # kopiér og kør kommandoen
+# åbn derefter http://localhost:8080/phpmyadmin
+```
+
+Log ind med `access_app` (kun data i `adgangskontrol`) eller `root`
+(alt, inkl. skemaændringer).

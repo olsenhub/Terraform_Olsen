@@ -38,10 +38,20 @@ variable "admin_source_ip" {
   type        = string
 }
 
+variable "extra_admin_source_ips" {
+  description = "Ekstra offentlige IP'er (med /32), fx gruppemedlemmernes hjemmeadresser, der også må SSH'e ind og se Grafana"
+  type        = list(string)
+  default     = []
+}
+
 variable "db_root_password" {
   description = "Root-password til MariaDB, som sættes af install-scriptet"
   type        = string
   sensitive   = true
+  validation {
+    condition     = !can(regex("['\\\\]", var.db_root_password))
+    error_message = "Password maa ikke indeholde ' eller \\ (bryder SQL/shell i provisioneren)."
+  }
 }
 variable "discord_webhook_url" {
   description = "Discord webhook-URL til Suricata-alerts. Lad vaere tom for at springe over."
@@ -59,6 +69,9 @@ variable "additional_users" {
     username            = string
     ssh_public_key_path = string
     sudo                = optional(bool, true)
+    # Sti til brugerens PRIVATE noegle paa egen computer - vises kun i
+    # Discord-beskeden. Tom = ssh_public_key_path uden .pub
+    ssh_private_key_hint = optional(string, "")
   }))
   default = []
 }
@@ -144,4 +157,51 @@ variable "dns_label" {
   description = "Valgfrit Azure DNS-label (giver <label>.<region>.cloudapp.azure.com). Skal være globalt unikt i regionen. Tom = kun IP"
   type        = string
   default     = ""
+}
+
+# ---------------------------------------------------------------------------
+# Adgangskontrol-database (database.tf)
+# ---------------------------------------------------------------------------
+variable "ssh_private_key_path" {
+  description = "Sti til privat SSH-noegle til provisionerne (DB-skema, phpMyAdmin). Tom = brug ssh-agent (noedvendigt hvis noeglen har passphrase)"
+  type        = string
+  default     = ""
+}
+
+variable "access_db_name" {
+  description = "Navn paa adgangskontrol-databasen"
+  type        = string
+  default     = "adgangskontrol"
+}
+
+variable "access_db_username" {
+  description = "MariaDB-bruger til backend/doer-enheder (SELECT/INSERT/UPDATE/DELETE paa adgangskontrol-databasen)"
+  type        = string
+  default     = "access_app"
+}
+
+variable "access_db_password" {
+  description = "Password til access_db_username"
+  type        = string
+  sensitive   = true
+  validation {
+    condition     = !can(regex("['\\\\]", var.access_db_password))
+    error_message = "Password maa ikke indeholde ' eller \\ (bryder SQL/shell i provisioneren)."
+  }
+}
+
+variable "access_db_host" {
+  description = "Host app-brugeren maa forbinde fra ('localhost' for kun lokal adgang, '%' for alle)"
+  type        = string
+  default     = "localhost"
+}
+
+# ---------------------------------------------------------------------------
+# Discord-besked med IP naar serveren er deployet (notify.tf)
+# ---------------------------------------------------------------------------
+variable "discord_deploy_webhook_url" {
+  description = "Discord webhook-URL til besked med IP/forbindelsesinfo naar VM'en er oppe. Tom = slaaet fra"
+  type        = string
+  default     = ""
+  sensitive   = true
 }
