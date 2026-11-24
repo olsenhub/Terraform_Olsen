@@ -17,7 +17,7 @@ skrevet i PHP uden framework, med design fra LockdIn-design-systemet
 |---|---|
 | `login.php` | Login. Kontoen låses i 15 min efter 5 forkerte forsøg. |
 | `profiler.php` | Alle brugere med søgning og filtre (rolle, status) |
-| `profil.php` | Opret og redigér: navn, rolle, kort-UID, PIN, gyldighed, fravalg af ansigt. Spær kort, lås op, deaktivér, tilmeld eller slet ansigt. |
+| `profil.php` | Opret og redigér: navn, rolle, kort-UID, PIN, gyldighed, fravalg af ansigt. Spær kort, lås op, deaktivér, slet ansigt. Upload af ansigtsbilleder (mindst 5) eller tilmelding via dørens kamera. |
 | `doere.php` | Døre med online-status (heartbeat), adgang pr. rolle, tilføj dør, tag ud af drift |
 | `adgangslog.php` | Alle adgangsforsøg med filtre, sideskift og CSV-eksport |
 | `support.php` | Fjernåbning med begrundelse og udstedelse af midlertidigt kort (Gæst, kort + PIN) |
@@ -27,6 +27,10 @@ Panelet taler ikke selv med dørene. Det skriver i databasen, og
 - Ændringer af brugere og rettigheder gælder fra næste kortlæsning.
 - Fjernåbning og tilmelding af ansigt indsættes i `door_commands`. Servicen
   sender dem til døren inden for et sekund.
+- Uploadede ansigtsbilleder gemmes i `/var/lib/lockdin-faces` (uden for
+  web-roden) med tilfældige filnavne og en `face_images`-række.
+  [Face-enroll-workeren](../services/face_enroll/face_enroll.py) laver dem om
+  til embeddings i `user_faces` og sletter billederne bagefter.
 
 ## Sikkerhed
 

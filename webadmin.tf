@@ -23,12 +23,13 @@ locals {
 
   # JSON (ikke ini): jsonencode escaper passwords med ; " $ o.l. korrekt
   webadmin_config = jsonencode({
-    db_dsn        = "mysql:host=localhost;dbname=${var.access_db_name};charset=utf8mb4"
-    db_user       = var.access_db_username
-    db_password   = var.access_db_password
-    site_name     = var.webadmin_site_name
-    timezone      = "Europe/Copenhagen"
-    cookie_secure = true
+    db_dsn          = "mysql:host=localhost;dbname=${var.access_db_name};charset=utf8mb4"
+    db_user         = var.access_db_username
+    db_password     = var.access_db_password
+    site_name       = var.webadmin_site_name
+    timezone        = "Europe/Copenhagen"
+    cookie_secure   = true
+    face_upload_dir = local.face_upload_dir
   })
 
   webadmin_install = <<-BASH
@@ -77,6 +78,11 @@ locals {
             Options -Indexes
             AllowOverride None
             Require ip ${join(" ", local.webadmin_sources)}
+
+            # Ansigtsbilleder: op til 20 x 10 MB i en upload (bootstrap.php)
+            php_admin_value upload_max_filesize 10M
+            php_admin_value post_max_size 210M
+            php_admin_value max_file_uploads 20
         </Directory>
 
         Header always set X-Frame-Options "DENY"
@@ -102,8 +108,9 @@ locals {
 }
 
 resource "terraform_data" "webadmin" {
-  # admin_users-tabellen skal findes foerst; servicen udfoerer door_commands
-  depends_on = [terraform_data.access_db_schema, terraform_data.access_service]
+  # admin_users-tabellen skal findes foerst; servicen udfoerer door_commands,
+  # face_enroll opretter upload-mappen til ansigtsbilleder
+  depends_on = [terraform_data.access_db_schema, terraform_data.access_service, terraform_data.face_enroll]
 
   triggers_replace = [
     azurerm_linux_virtual_machine.vm.id,

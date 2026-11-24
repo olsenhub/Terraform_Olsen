@@ -11,11 +11,11 @@ MQTT-emner (<device_id> = doors.device_id, fx door-hoveddoer):
   iot/door/<device_id>/response  service -> Pi   aabn / afvis
   iot/door/<device_id>/status    Pi -> service   heartbeat (retained + LWT)
   iot/door/<device_id>/command   service -> Pi   fjernaabning / ansigts-tilmelding
-  iot/door/<device_id>/enroll    Pi -> service   ansigts-embedding til en bruger
+  iot/door/<device_id>/enroll    Pi -> service   ansigtsbillede til en bruger
 
 Request (JSON):
   {"request_id": "abc", "card_uid": "04:A3:2F:1B",
-   "method": "face_rfid", "embedding": [128 floats]}      # primaer
+   "method": "face_rfid", "image": "<base64 JPEG>"}      # primaer
   {"request_id": "abc", "card_uid": "04:A3:2F:1B",
    "method": "rfid_pin", "pin": "1234"}                    # alternativ
 
@@ -23,11 +23,20 @@ Response (JSON):
   {"request_id": "abc", "granted": true, "reason": null,
    "user": "Mette Hansen", "open_seconds": 5}
 
+Ansigtsgenkendelsen sker HER paa serveren, ikke paa doeren: en Pi Zero er for
+svag til dlib, og en doer skal ikke kunne sende en faerdig embedding (en
+kompromitteret doer kunne ellers genbruge en stjaalet embedding). Pi'en sender
+kun billedet; servicen finder ansigtet (face_recognition / dlib), laver
+embeddingen og sammenligner med brugerens tilmeldte ansigter.
+
 Fjernsupport: admin-siden indsaetter en raekke i door_commands. Servicen
 poller tabellen, sender kommandoen til doeren og logger aabningen i
 access_log med method='support'.
 """
 
+import base64
+import binascii
+import io
 import json
 import logging
 import math
@@ -44,6 +53,8 @@ log = logging.getLogger("access-service")
 TOPIC_PREFIX = "iot/door"
 EMBEDDING_DIM = 128            # face_recognition / dlib giver 128 floats
 EMBEDDING_FMT = f"<{EMBEDDING_DIM}f"
+MAX_IMAGE_BYTES = 512 * 1024   # et 640x480 JPEG fra Pi-kameraet er ~50-100 KB
+MAX_IMAGE_SIDE = 1600          # stoerre billeder skaleres ned - HOG er langsom paa 12 MP
 
 # Afvisningsaarsager - samme koder som access_log.reason i database.tf
 UNKNOWN_CARD = "unknown_card"
@@ -54,6 +65,8 @@ NO_PERMISSION = "no_permission"
 FACE_MISMATCH = "face_mismatch"
 FACE_OPT_OUT = "face_opt_out"        # brugeren har fravalgt ansigt -> brug PIN
 NO_FACE_ENROLLED = "no_face_enrolled"
+NO_FACE_DETECTED = "no_face_detected"   # intet ansigt i doerens billede
+BAD_IMAGE = "bad_image"                 # mangler / ikke et JPEG/PNG / for stort
 NO_PIN = "no_pin"
 WRONG_PIN = "wrong_pin"
 BAD_REQUEST = "bad_request"
@@ -95,6 +108,39 @@ def face_distance(a, b):
     return math.sqrt(sum((x - y) ** 2 for x, y in zip(a, b)))
 
 
+def decode_image(value):
+    """base64-tekst fra en MQTT-besked -> bytes. ValueError hvis ugyldig."""
+    if not isinstance(value, str) or not value:
+        raise ValueError("billede mangler")
+    if len(value) > MAX_IMAGE_BYTES * 4 // 3 + 4:
+        raise ValueError("billede for stort")
+    try:
+        return base64.b64decode(value, validate=True)
+    except binascii.Error as e:
+        raise ValueError(f"ugyldig base64: {e}") from None
+
+
+def encode_faces(image_bytes):
+    """Embeddings for alle ansigter i et JPEG/PNG - stoerste ansigt foerst.
+
+    Kraever face_recognition (dlib), numpy og Pillow - de ligger i venv'et
+    /opt/lockdin/face-venv paa VM'en. Importeres her, saa testene kan koere
+    uden.
+    """
+    import face_recognition
+    import numpy
+    from PIL import Image, ImageOps
+
+    with Image.open(io.BytesIO(image_bytes)) as img:
+        img = ImageOps.exif_transpose(img).convert("RGB")   # mobilbilleder er ofte roteret i EXIF
+        img.thumbnail((MAX_IMAGE_SIDE, MAX_IMAGE_SIDE))
+        pixels = numpy.asarray(img)
+    # (top, right, bottom, left) - stoerste ansigt = personen taettest paa kameraet
+    locations = face_recognition.face_locations(pixels, model="hog")
+    locations.sort(key=lambda b: (b[2] - b[0]) * (b[1] - b[3]), reverse=True)
+    return [[float(v) for v in e] for e in face_recognition.face_encodings(pixels, locations)]
+
+
 def check_pin(pin, pin_hash):
     """bcrypt-check. PHP's password_hash() giver $2y$, som er samme
     algoritme som $2b$ - python-bcrypt vil have $2b$."""
@@ -110,7 +156,8 @@ def check_pin(pin, pin_hash):
 def decide(request, user, has_permission, faces, settings, now, pin_checker=check_pin):
     """Afgoer en adgangsanmodning.
 
-    request:        dict fra Pi'en (method, pin / embedding)
+    request:        dict fra Pi'en (method, pin) + "embedding" beregnet af
+                    servicen ud fra billedet, eller "face_error" (aarsag)
     user:           raekke fra users (dict) eller None hvis kortet er ukendt
     has_permission: om brugerens rolle maa aabne doeren lige nu (v_current_access)
     faces:          brugerens gemte embeddings (liste af tuples)
@@ -143,6 +190,9 @@ def decide(request, user, has_permission, faces, settings, now, pin_checker=chec
             return d
         if not faces:
             d.reason = NO_FACE_ENROLLED
+            return d
+        if request.get("face_error"):
+            d.reason = request["face_error"]
             return d
         try:
             probe = [float(v) for v in request.get("embedding") or []]
@@ -282,10 +332,11 @@ class Repository:
 # ---------------------------------------------------------------------------
 
 class AccessService:
-    def __init__(self, repo, client, settings):
+    def __init__(self, repo, client, settings, encoder=encode_faces):
         self.repo = repo
         self.client = client
         self.settings = settings
+        self.encoder = encoder
         self._stop = threading.Event()
 
     # --- MQTT callbacks ---
@@ -337,6 +388,15 @@ class AccessService:
         has_perm = bool(user) and self.repo.has_permission(user["id"], device_id)
         faces = self.repo.faces(user["id"]) if user and request.get("method") == "face_rfid" else []
 
+        # Doeren maa ikke selv levere en embedding - den beregnes kun her.
+        # Kun naar der er noget at sammenligne med (dlib er det dyre skridt).
+        request = {k: v for k, v in request.items() if k not in ("embedding", "face_error")}
+        face_ms = None
+        if faces and not user["face_opt_out"]:
+            face_started = time.monotonic()
+            request.update(self.probe_from_image(device_id, request.get("image")))
+            face_ms = int((time.monotonic() - face_started) * 1000)
+
         d = decide(request, user, has_perm, faces, self.settings, datetime.now())
 
         if d.failed_pin:
@@ -354,18 +414,37 @@ class AccessService:
             "user": d.user_name if d.granted else None,
             "open_seconds": self.settings.open_seconds if d.granted else 0,
         })
-        log.info("%s %s kort=%s bruger=%s aarsag=%s (%d ms)", device_id,
+        log.info("%s %s kort=%s bruger=%s aarsag=%s (%d ms, heraf ansigt %s ms)", device_id,
                  "GODKENDT" if d.granted else "AFVIST", card_uid, d.user_name,
-                 d.reason, response_ms)
+                 d.reason, response_ms, face_ms)
 
-    # --- Ansigts-tilmelding: Pi sender embedding efter en enroll_face-kommando ---
+    def probe_from_image(self, device_id, image):
+        """Billede fra doeren -> {"embedding": ...} eller {"face_error": aarsag}."""
+        try:
+            encodings = self.encoder(decode_image(image))
+        except Exception as e:   # ugyldig base64, ikke et billede, korrupt JPEG ...
+            log.warning("Ulaeseligt billede fra %s: %s", device_id, e)
+            return {"face_error": BAD_IMAGE}
+        if not encodings:
+            return {"face_error": NO_FACE_DETECTED}
+        return {"embedding": encodings[0]}
+
+    # --- Ansigts-tilmelding: Pi sender et billede efter en enroll_face-kommando ---
     def handle_enroll(self, device_id, payload):
         user_id = payload.get("user_id")
         try:
-            self.repo.add_face(int(user_id), payload.get("embedding") or [])
-            log.info("Ansigt tilmeldt for bruger %s via %s", user_id, device_id)
-        except (TypeError, ValueError) as e:
+            user_id = int(user_id)
+            encodings = self.encoder(decode_image(payload.get("image")))
+        except Exception as e:
             log.warning("Ugyldig enroll fra %s: %s", device_id, e)
+            return
+        # Tilmelding skal vaere entydig: praecis et ansigt i billedet
+        if len(encodings) != 1:
+            log.warning("Enroll fra %s til bruger %s afvist: %d ansigter i billedet",
+                        device_id, user_id, len(encodings))
+            return
+        self.repo.add_face(user_id, encodings[0])
+        log.info("Ansigt tilmeldt for bruger %s via %s", user_id, device_id)
 
     # --- Kommandoer fra admin-siden (door_commands) ---
     def process_commands(self):

@@ -56,10 +56,14 @@ acceptabel ydeevne?
 - `phpmyadmin.tf`: phpMyAdmin over SSH-provisioner, kun `Require local` – tilgås via
   SSH-tunnel (`terraform output phpmyadmin_tunnel`).
 - Grafana-dashboards i `dashboards/`.
-- `access_service.tf`: Python-daemonen `lockdin-access` (kode i
+- `access_service.tf`: Python-daemonen `lockdin-access` (ansigtsgenkendelse sker HER:
+  Pi Zero sender kun JPEG over MQTT; dlib i venv `/opt/lockdin/face-venv`) (kode i
   `services/access_service/`, tests med `python3 -m unittest`) – MQTT
   `iot/door/<device_id>/request|response|status|command|enroll` ↔ MariaDB. Skriver
   også Mosquitto-ACL'en (overskriver cloud-init's).
+- `face_enroll.tf`: worker'en `lockdin-face-enroll` (kode i
+  `services/face_enroll/`) laver ansigtsbilleder, der er uploadet i panelet (min. 5), om til
+  embeddings med face_recognition/dlib (dlib-bin-wheel i venv) og sletter billederne.
 - `webadmin.tf`: admin-panelet (PHP i `webadmin/app/`, kun `public/` serveres) på
   Apache-vhost 8443 med TLS (MQTT-certifikatet) og `Require ip` = NSG-reglen
   `Allow-WebAdmin` (`customer_admin_ips` + admin-IP'er). Konfig i

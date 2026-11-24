@@ -9,7 +9,11 @@ paho-mqtt + en lokal `mosquitto` og springes ellers over. SQL'en mod MariaDB
 testes ikke her - den koeres paa VM'en (se README.md).
 """
 
+import base64
+import hashlib
+import json
 import os
+import random
 import shutil
 import socket
 import subprocess
@@ -22,9 +26,23 @@ from datetime import datetime, timedelta
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import access_service as svc  # noqa: E402
-from simulate_door import fake_embedding  # noqa: E402
 
 NOW = datetime(2026, 11, 23, 14, 0)
+
+
+def fake_embedding(name):
+    """Deterministisk 128-dim 'ansigt' ud fra et navn (samme format som face_recognition)."""
+    rnd = random.Random(hashlib.sha256(name.encode()).digest())
+    return [round(rnd.uniform(-0.25, 0.25), 6) for _ in range(128)]
+
+
+def fake_encoder(image_bytes):
+    """Erstatter dlib i testene: "billedet" er en tekstfil med navne paa de
+    ansigter, det indeholder ("mette", "mette,tyv", "" = intet ansigt)."""
+    names = image_bytes.decode().strip()
+    if names == "korrupt":
+        raise OSError("cannot identify image file")
+    return [fake_embedding(n) for n in names.split(",") if n]
 SETTINGS = svc.Settings()
 
 
@@ -152,6 +170,79 @@ class HelpersTest(unittest.TestCase):
 
 
 # ---------------------------------------------------------------------------
+# Billede fra doeren -> embedding paa serveren (uden MQTT)
+# ---------------------------------------------------------------------------
+
+def b64(text):
+    return base64.b64encode(text.encode()).decode()
+
+
+class FakeClient:
+    def __init__(self):
+        self.sent = []
+
+    def publish(self, topic, payload, qos=0):
+        self.sent.append((topic, json.loads(payload)))
+
+
+class ServerSideFaceTest(unittest.TestCase):
+    def setUp(self):
+        self.repo = FakeRepo()
+        self.repo.face_store[1] = [tuple(fake_embedding("mette"))]
+        self.client = FakeClient()
+        self.service = svc.AccessService(self.repo, self.client, SETTINGS, encoder=fake_encoder)
+
+    def request(self, **kw):
+        self.service.handle_request("door-hoveddoer", {
+            "request_id": "r1", "card_uid": "04:A3:2F:1B", "method": "face_rfid", **kw})
+        return self.client.sent[-1][1]
+
+    def test_image_with_enrolled_face_opens(self):
+        self.assertTrue(self.request(image=b64("mette"))["granted"])
+
+    def test_other_face_is_mismatch(self):
+        self.assertEqual(self.request(image=b64("tyv"))["reason"], "face_mismatch")
+
+    def test_largest_face_decides(self):
+        # encode_faces sorterer stoerste ansigt foerst - en forbipasserende
+        # bag brugeren maa hverken hjaelpe eller skade
+        self.assertTrue(self.request(image=b64("mette,tyv"))["granted"])
+        self.assertEqual(self.request(image=b64("tyv,mette"))["reason"], "face_mismatch")
+
+    def test_no_face_in_image(self):
+        self.assertEqual(self.request(image=b64(" "))["reason"], "no_face_detected")
+
+    def test_bad_images(self):
+        self.assertEqual(self.request()["reason"], "bad_image")
+        self.assertEqual(self.request(image="ikke base64!")["reason"], "bad_image")
+        self.assertEqual(self.request(image=b64("korrupt"))["reason"], "bad_image")
+        self.assertEqual(self.request(image="A" * (svc.MAX_IMAGE_BYTES * 2))["reason"], "bad_image")
+
+    def test_door_cannot_send_its_own_embedding(self):
+        # En kompromitteret doer med en stjaalet embedding kommer ikke ind
+        reply = self.request(embedding=fake_embedding("mette"))
+        self.assertFalse(reply["granted"])
+        self.assertEqual(reply["reason"], "bad_image")
+        reply = self.request(embedding=fake_embedding("mette"), face_error=None, image=b64("tyv"))
+        self.assertEqual(reply["reason"], "face_mismatch")
+
+    def test_image_not_processed_when_not_needed(self):
+        calls = []
+        self.service.encoder = lambda b: calls.append(b) or []
+        self.repo.face_store[1] = []
+        self.assertEqual(self.request(image=b64("mette"))["reason"], "no_face_enrolled")
+        self.assertEqual(calls, [])
+
+    def test_enroll_requires_exactly_one_face(self):
+        self.repo.face_store[1] = []
+        for names in (" ", "mette,tyv", "korrupt"):
+            self.service.handle_enroll("door-hoveddoer", {"user_id": 1, "image": b64(names)})
+        self.assertEqual(self.repo.face_store[1], [])
+        self.service.handle_enroll("door-hoveddoer", {"user_id": 1, "image": b64("mette")})
+        self.assertEqual(self.repo.face_store[1], [tuple(fake_embedding("mette"))])
+
+
+# ---------------------------------------------------------------------------
 # MQTT-rundtur: rigtig broker + service + simulator, falsk database
 # ---------------------------------------------------------------------------
 
@@ -219,7 +310,10 @@ class MqttRoundTripTest(unittest.TestCase):
         cls.repo = FakeRepo()
         client = svc.make_client("test-service")
         client.username_pw_set("access_service", "svcpass")
-        cls.service = svc.AccessService(cls.repo, client, SETTINGS)
+        cls.service = svc.AccessService(cls.repo, client, SETTINGS, encoder=fake_encoder)
+        for name in ("mette", "tyv"):
+            with open(os.path.join(cls.tmp, name + ".jpg"), "w") as f:
+                f.write(name)
         client.on_connect = cls.service.on_connect
         client.on_message = cls.service.on_message
         connected = threading.Event()
@@ -238,6 +332,9 @@ class MqttRoundTripTest(unittest.TestCase):
         cls.broker.wait()
         shutil.rmtree(cls.tmp)
 
+    def img(self, name):
+        return os.path.join(self.tmp, name + ".jpg")
+
     def door(self, *args):
         here = os.path.dirname(os.path.abspath(__file__))
         r = subprocess.run([sys.executable, os.path.join(here, "simulate_door.py"),
@@ -248,7 +345,7 @@ class MqttRoundTripTest(unittest.TestCase):
 
     def test_demo_flow(self):
         # 1) Tilmeld receptionistens ansigt via hoveddoeren
-        self.door("--device", "door-hoveddoer", "--enroll", "1", "--face", "mette")
+        self.door("--device", "door-hoveddoer", "--enroll", "1", "--image", self.img("mette"))
         for _ in range(20):
             if self.repo.face_store[1]:
                 break
@@ -256,15 +353,15 @@ class MqttRoundTripTest(unittest.TestCase):
         self.assertEqual(len(self.repo.face_store[1]), 1)
 
         # 2) Hoveddoer: godkendt
-        out = self.door("--device", "door-hoveddoer", "--card", "04:A3:2F:1B", "--face", "mette")
+        out = self.door("--device", "door-hoveddoer", "--card", "04:A3:2F:1B", "--image", self.img("mette"))
         self.assertIn("AABN", out)
 
         # 3) Oekonomiafdeling: afvist pga. rolle
-        out = self.door("--device", "door-oekonomi", "--card", "04:A3:2F:1B", "--face", "mette")
+        out = self.door("--device", "door-oekonomi", "--card", "04:A3:2F:1B", "--image", self.img("mette"))
         self.assertIn("AFVIST: no_permission", out)
 
         # 4) Fremmed ansigt paa receptionistens kort
-        out = self.door("--device", "door-hoveddoer", "--card", "04:A3:2F:1B", "--face", "tyv")
+        out = self.door("--device", "door-hoveddoer", "--card", "04:A3:2F:1B", "--image", self.img("tyv"))
         self.assertIn("AFVIST: face_mismatch", out)
 
         # 5) Ukendt doer

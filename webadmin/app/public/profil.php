@@ -106,8 +106,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 flash('success', 'PIN fjernet.');
                 break;
             case 'delete_faces':
+                // Ogsaa billeder, workeren ikke har naaet endnu
+                $dir = $config['face_upload_dir'] ?? '/var/lib/lockdin-faces';
+                foreach (q('SELECT file_name FROM face_images WHERE user_id = ? AND status = ?', [$uid, 'pending'])->fetchAll(PDO::FETCH_COLUMN) as $f) {
+                    @unlink($dir . '/' . basename($f));
+                }
+                q('DELETE FROM face_images WHERE user_id = ?', [$uid]);
                 q('DELETE FROM user_faces WHERE user_id = ?', [$uid]);
                 flash('success', 'Ansigtsdata slettet.');
+                break;
+            case 'upload_faces':
+                $res = save_face_images($_FILES['photos'] ?? [], $uid, $admin);
+                if (is_string($res)) {
+                    flash('danger', 'Ikke uploadet.', $res);
+                } else {
+                    flash('success', $res . ' billeder uploadet.', 'Ansigterne findes og gemmes som embeddings om få sekunder. Billederne slettes derefter.');
+                }
                 break;
             case 'enroll_face':
                 $doorId = (int) ($_POST['door_id'] ?? 0);
@@ -127,6 +141,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $faces = $user ? q('SELECT COUNT(*) AS n, MAX(created_at) AS last FROM user_faces WHERE user_id = ?', [$user['id']])->fetch() : null;
+$faceImages = $user ? q('SELECT status, created_at FROM face_images WHERE user_id = ? ORDER BY id DESC LIMIT ' . MAX_FACE_IMAGES, [$user['id']])->fetchAll() : [];
+$facePending = count(array_filter($faceImages, fn ($i) => $i['status'] === 'pending'));
 $doors = q('SELECT id, name, device_id FROM doors WHERE is_active ORDER BY id')->fetchAll();
 $doorAccess = q('SELECT r.id AS role_id, GROUP_CONCAT(d.name ORDER BY d.id SEPARATOR ", ") AS doors
                  FROM roles r LEFT JOIN role_door_access a ON a.role_id = r.id
@@ -208,11 +224,29 @@ page_header($user ? $user['name'] : 'Ny profil', 'Profiler');
   <?php if ($user['face_opt_out']): ?>
     <p class="li-muted" style="margin:0">Fravalgt – brugeren åbner med kort + PIN.</p>
   <?php else: ?>
-    <p style="margin:0 0 10px"><?= $faces['n'] ? label('granted', 'Tilmeldt') . ' ' . (int) $faces['n'] . ' billede(r) · ' . fmt_time($faces['last'], 'd-m-Y') : label('default', 'Ikke tilmeldt') ?></p>
-    <form method="post"><?= csrf_field() ?><input type="hidden" name="action" value="enroll_face">
+    <p style="margin:0 0 10px"><?php
+      if ($faces['n'] >= MIN_FACE_IMAGES) echo label('granted', 'Tilmeldt') . ' ' . (int) $faces['n'] . ' ansigter · ' . fmt_time($faces['last'], 'd-m-Y');
+      elseif ($faces['n']) echo label('warning', 'For få ansigter') . ' ' . (int) $faces['n'] . ' af mindst ' . MIN_FACE_IMAGES;
+      else echo label('default', 'Ikke tilmeldt');
+      if ($facePending) echo ' · ' . $facePending . ' behandles';
+    ?></p>
+    <form method="post" enctype="multipart/form-data"><?= csrf_field() ?><input type="hidden" name="action" value="upload_faces">
+      <div class="li-form-group"><label for="ph">Upload billeder</label>
+        <input id="ph" name="photos[]" type="file" class="li-input" accept="image/jpeg,image/png" multiple required data-min-files="<?= MIN_FACE_IMAGES ?>" data-max-files="<?= MAX_FACE_IMAGES ?>">
+        <span class="li-help" data-files-help>Mindst <?= MIN_FACE_IMAGES ?> JPEG/PNG (maks. <?= MAX_FACE_IMAGE_BYTES >> 20 ?> MB hver), ét ansigt pr. billede, gerne forskellige vinkler og lys.</span></div>
+      <button class="li-btn li-btn-primary">Upload</button>
+    </form>
+    <?php if ($faceImages): ?>
+    <table class="li-table" style="margin-top:12px"><thead><tr><th>Uploadet</th><th>Resultat</th></tr></thead><tbody>
+    <?php foreach ($faceImages as $img): [$k, $t] = FACE_IMAGE_STATUS[$img['status']]; ?>
+      <tr><td><code><?= fmt_time($img['created_at'], 'd-m H:i') ?></code></td><td><?= label($k, $t) ?></td></tr>
+    <?php endforeach; ?>
+    </tbody></table>
+    <?php endif; ?>
+    <form method="post" style="margin-top:14px"><?= csrf_field() ?><input type="hidden" name="action" value="enroll_face">
       <div class="li-form-group"><label for="d">Tilmeld via dør</label>
         <select id="d" name="door_id" class="li-select"><?php foreach ($doors as $d): ?><option value="<?= $d['id'] ?>"><?= h($d['name']) ?> (<?= h($d['device_id']) ?>)</option><?php endforeach; ?></select>
-        <span class="li-help">Personen stiller sig foran kameraet. Kun embeddings gemmes, ikke billeder.</span></div>
+        <span class="li-help">Alternativ: personen stiller sig foran kameraet. Der gemmes kun embeddings, aldrig billeder.</span></div>
       <button class="li-btn"><?= $faces['n'] ? 'Tilføj ansigt' : 'Tilmeld ansigt' ?></button>
     </form>
     <?php if ($faces['n']): ?>

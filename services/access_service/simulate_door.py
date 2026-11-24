@@ -3,8 +3,8 @@
 Simuleret doer-enhed - test adgangs-servicen uden Raspberry Pi.
 
 Sender en adgangsanmodning som doeren ville goere og venter paa svaret.
-"Ansigter" er falske embeddings lavet ud fra et navn (--face mette), saa
-samme navn altid giver samme ansigt: tilmeld med --enroll og test bagefter.
+Ansigtet sendes som et JPEG/PNG (--image), praecis som Pi'ens kamera goer -
+serveren finder ansigtet og laver embeddingen.
 
 Paa VM'en (lokal listener, doer-brugerens login):
   python3 /opt/lockdin/simulate_door.py --user iot_device --password '...' \\
@@ -15,15 +15,14 @@ Fra en laptop/Pi (TLS paa 8883, kraever mqtt-ca.crt):
 
 Eksempler:
   --card 04:A3:2F:1B --pin 1234            RFID + PIN
-  --card 04:A3:2F:1B --face mette          RFID + ansigt
-  --enroll 1 --face mette                  gem "mette"-ansigtet paa bruger 1
+  --card 04:A3:2F:1B --image mette.jpg     RFID + ansigt
+  --enroll 1 --image mette.jpg             tilmeld ansigtet i billedet til bruger 1
   --listen                                 vis kommandoer (fjernaabning) til doeren
 """
 
 import argparse
-import hashlib
+import base64
 import json
-import random
 import ssl
 import sys
 import threading
@@ -31,14 +30,14 @@ import time
 import uuid
 
 
-def fake_embedding(name):
-    """Deterministisk 128-dim 'ansigt' ud fra et navn (samme som face_recognition-format)."""
-    rnd = random.Random(hashlib.sha256(name.encode()).digest())
-    return [round(rnd.uniform(-0.25, 0.25), 6) for _ in range(128)]
+def read_image(path):
+    """Billedfil -> base64-tekst til MQTT-beskeden (samme format som Pi'en)."""
+    with open(path, "rb") as f:
+        return base64.b64encode(f.read()).decode()
 
 
 def main():
-    import paho.mqtt.client as mqtt  # her, saa testene kan importere fake_embedding uden paho
+    import paho.mqtt.client as mqtt
 
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--host", default="127.0.0.1")
@@ -49,11 +48,13 @@ def main():
     p.add_argument("--device", default="door-hoveddoer")
     p.add_argument("--card")
     p.add_argument("--pin")
-    p.add_argument("--face", help="navn paa et falsk ansigt")
-    p.add_argument("--enroll", type=int, metavar="USER_ID", help="send --face som tilmelding til bruger")
+    p.add_argument("--image", help="JPEG/PNG med ansigtet (som Pi-kameraet ville tage)")
+    p.add_argument("--enroll", type=int, metavar="USER_ID", help="send --image som tilmelding til bruger")
     p.add_argument("--listen", action="store_true", help="lyt efter kommandoer til doeren")
     p.add_argument("--timeout", type=float, default=5)
     a = p.parse_args()
+    if a.enroll is not None and not a.image:
+        p.error("--enroll kraever --image")
 
     base = f"iot/door/{a.device}"
     request_id = uuid.uuid4().hex[:8]
@@ -82,13 +83,13 @@ def main():
 
         if a.enroll is not None:
             c.publish(f"{base}/enroll", json.dumps(
-                {"user_id": a.enroll, "embedding": fake_embedding(a.face or "x")}), qos=1)
-            print(f"Tilmelding sendt: ansigt '{a.face}' -> bruger {a.enroll}")
+                {"user_id": a.enroll, "image": read_image(a.image)}), qos=1)
+            print(f"Tilmelding sendt: {a.image} -> bruger {a.enroll}")
             got_reply.set()
         elif a.card:
             req = {"request_id": request_id, "card_uid": a.card}
-            if a.face:
-                req.update(method="face_rfid", embedding=fake_embedding(a.face))
+            if a.image:
+                req.update(method="face_rfid", image=read_image(a.image))
             else:
                 req.update(method="rfid_pin", pin=a.pin or "")
             sent_at[0] = time.monotonic()

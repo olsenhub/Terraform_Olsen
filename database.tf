@@ -153,6 +153,29 @@ locals {
         REFERENCES users(id) ON DELETE SET NULL
     ) ENGINE=InnoDB;
 
+    -- Ansigtsbilleder uploadet i admin-panelet (min. 5 ad gangen). Filen
+    -- ligger i /var/lib/lockdin-faces, til face-enroll-workeren
+    -- (services/face_enroll) har lavet en embedding i user_faces - derefter
+    -- slettes billedet, og kun raekken med status bevares.
+    --   ok:             praecis et ansigt -> embedding gemt
+    --   no_face:        intet ansigt fundet
+    --   multiple_faces: flere ansigter - vi ved ikke hvilket
+    --   error:          kunne ikke laese billedet
+    CREATE TABLE IF NOT EXISTS face_images (
+      id            INT          NOT NULL AUTO_INCREMENT,
+      user_id       INT          NOT NULL,
+      file_name     VARCHAR(100) NOT NULL,
+      status        ENUM('pending','ok','no_face','multiple_faces','error')
+                                 NOT NULL DEFAULT 'pending',
+      uploaded_by   VARCHAR(100) NOT NULL,
+      created_at    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      processed_at  DATETIME     NULL,
+      PRIMARY KEY (id),
+      KEY idx_face_images_status (status, id),
+      CONSTRAINT fk_face_images_user FOREIGN KEY (user_id)
+        REFERENCES users(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB;
+
     -- Logins til admin-panelet (webadmin.tf). password_hash er PHP's
     -- password_hash(). Efter 5 forkerte logins laases kontoen i 15 min.
     -- Den foerste konto oprettes af webadmin.tf ud fra terraform.tfvars.

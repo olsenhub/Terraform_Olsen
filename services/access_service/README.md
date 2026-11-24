@@ -28,20 +28,29 @@ et kort har adgang til en dør, før kortholderen har bevist sin identitet.
 
 | Emne | Retning | Indhold |
 |---|---|---|
-| `iot/door/<id>/request` | Pi → service | `{"request_id", "card_uid", "method": "face_rfid", "embedding": [128 floats]}` eller `{"…", "method": "rfid_pin", "pin": "1234"}` |
+| `iot/door/<id>/request` | Pi → service | `{"request_id", "card_uid", "method": "face_rfid", "image": "<base64 JPEG>"}` eller `{"…", "method": "rfid_pin", "pin": "1234"}` |
 | `iot/door/<id>/response` | service → Pi | `{"request_id", "granted", "reason", "user", "open_seconds"}` |
 | `iot/door/<id>/status` | Pi → service | `{"online": true}` (retained). Sæt LWT til `{"online": false}`. |
 | `iot/door/<id>/command` | service → Pi | `{"action": "open", "open_seconds": 5}` eller `{"action": "enroll_face", "user_id": 3}` |
-| `iot/door/<id>/enroll` | Pi → service | `{"user_id": 3, "embedding": [128 floats]}` |
+| `iot/door/<id>/enroll` | Pi → service | `{"user_id": 3, "image": "<base64 JPEG>"}` |
 
 `<id>` er `doors.device_id`, fx `door-hoveddoer` og `door-oekonomi`.
 
 **Afvisningsårsager** (`reason`): `unknown_card`, `inactive`, `expired`,
-`locked`, `face_opt_out` (brug PIN), `no_face_enrolled`, `face_mismatch`,
+`locked`, `face_opt_out` (brug PIN), `no_face_enrolled`, `no_face_detected`,
+`bad_image`, `face_mismatch`,
 `no_pin`, `wrong_pin`, `no_permission`, `bad_request`, `unknown_door`.
 
-**Ansigter:** Pi'en sender kun embeddingen (128 floats fra `face_recognition`),
-aldrig billedet. Et match er en euklidisk afstand ≤ `FACE_THRESHOLD` (0,6).
+**Ansigter – beregnes på serveren:** Pi Zero'en tager et billede (fx 640×480
+JPEG, ~30–100 KB, maks. 512 KB) og sender det base64-kodet. Servicen finder
+ansigterne med `face_recognition` (dlib, HOG), bruger det **største** ansigt
+(personen tættest på kameraet) og laver embeddingen (128 floats). Et match er
+en euklidisk afstand ≤ `FACE_THRESHOLD` (0,6). En `embedding` sendt af døren
+ignoreres, så en kompromitteret dør ikke kan genbruge en stjålet embedding.
+Tilmelding via døren kræver præcis ét ansigt i billedet. Billedet gemmes ikke.
+
+Målt lokalt (640×480 JPEG): ~200 ms pr. billede med ansigt, ~80 ms uden;
+første billede efter start ~0,8 s, fordi dlib-modellerne indlæses.
 
 **PIN:** Den gemmes som bcrypt-hash (`password_hash()` i PHP virker direkte).
 Efter `MAX_PIN_ATTEMPTS` (3) forkerte forsøg låses kontoen i
@@ -61,24 +70,25 @@ Efter `MAX_PIN_ATTEMPTS` (3) forkerte forsøg låses kontoen i
 
 ## Test
 
-Lokalt (logikken kræver intet; MQTT-testen kræver `mosquitto` + `paho-mqtt`):
+Lokalt (logikken kræver intet – dlib erstattes af en falsk encoder; MQTT-testen
+kræver `mosquitto` + `paho-mqtt`):
 
 ```bash
 cd services/access_service
 python3 -m unittest -v test_access_service.py
 ```
 
-På VM'en efter `terraform apply`. Tilmeld først et falsk ansigt til
-receptionisten, og kør så demoen:
+På VM'en efter `terraform apply`. Kopiér et par billeder af et ansigt op
+(`scp`), tilmeld det til receptionisten, og kør så demoen:
 
 ```bash
 sudo systemctl status lockdin-access
 sudo journalctl -u lockdin-access -f        # i et andet vindue
 
-SIM="python3 /opt/lockdin/simulate_door.py --user iot_device --password '<mqtt_password>'"
-$SIM --device door-hoveddoer --enroll <user_id> --face mette
-$SIM --device door-hoveddoer --card <kort-uid> --face mette   # → ÅBN
-$SIM --device door-oekonomi  --card <kort-uid> --face mette   # → AFVIST: no_permission
+SIM="/opt/lockdin/face-venv/bin/python /opt/lockdin/simulate_door.py --user iot_device --password '<mqtt_password>'"
+$SIM --device door-hoveddoer --enroll <user_id> --image mette1.jpg
+$SIM --device door-hoveddoer --card <kort-uid> --image mette2.jpg   # → ÅBN
+$SIM --device door-oekonomi  --card <kort-uid> --image mette2.jpg   # → AFVIST: no_permission
 $SIM --device door-hoveddoer --listen                         # se fjernåbninger
 ```
 

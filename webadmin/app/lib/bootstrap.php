@@ -11,6 +11,10 @@ declare(strict_types=1);
 const SESSION_IDLE_SECONDS = 30 * 60;
 const MAX_FAILED_LOGINS = 5;
 const LOGIN_LOCK_MINUTES = 15;
+// Ansigtsbilleder: mindst 5 forskellige billeder giver en robust genkendelse
+const MIN_FACE_IMAGES = 5;
+const MAX_FACE_IMAGES = 20;
+const MAX_FACE_IMAGE_BYTES = 10 * 1024 * 1024;
 
 $configFile = getenv('LOCKDIN_CONFIG') ?: '/etc/lockdin-webadmin/config.json';
 $config = json_decode((string) @file_get_contents($configFile), true);
@@ -135,6 +139,70 @@ function user_status(array $u): array
     if ($u['valid_from'] && $u['valid_from'] > $now) return ['default', 'Ikke startet'];
     if ($u['is_temporary']) return ['warning', 'Midlertidig'];
     return ['granted', 'Aktiv'];
+}
+
+const FACE_IMAGE_STATUS = [
+    'pending' => ['default', 'Behandles'],
+    'ok' => ['granted', 'Ansigt fundet'],
+    'no_face' => ['denied', 'Intet ansigt'],
+    'multiple_faces' => ['warning', 'Flere ansigter'],
+    'error' => ['denied', 'Ulæseligt'],
+];
+
+/**
+ * Gem uploadede ansigtsbilleder (<input type=file name=photos[] multiple>) i
+ * upload-mappen og opret face_images-raekker. Alt eller intet: er et billede
+ * ugyldigt, gemmes ingen. Returnerer antal gemte eller en fejltekst.
+ */
+function save_face_images(array $files, int $userId, string $admin): int|string
+{
+    global $config;
+    $dir = $config['face_upload_dir'] ?? '/var/lib/lockdin-faces';
+
+    // $_FILES['photos'] har et array pr. felt - vend det til et pr. fil
+    $list = [];
+    foreach ((array) ($files['error'] ?? []) as $i => $err) {
+        if ($err === UPLOAD_ERR_NO_FILE) continue;
+        $list[] = ['error' => $err, 'tmp' => $files['tmp_name'][$i], 'size' => $files['size'][$i],
+                   'name' => $files['name'][$i]];
+    }
+    if (count($list) < MIN_FACE_IMAGES) return 'Vælg mindst ' . MIN_FACE_IMAGES . ' billeder (du valgte ' . count($list) . ').';
+    if (count($list) > MAX_FACE_IMAGES) return 'Højst ' . MAX_FACE_IMAGES . ' billeder ad gangen.';
+
+    $finfo = new finfo(FILEINFO_MIME_TYPE);
+    $ext = ['image/jpeg' => 'jpg', 'image/png' => 'png'];
+    foreach ($list as &$f) {
+        if ($f['error'] === UPLOAD_ERR_INI_SIZE || $f['error'] === UPLOAD_ERR_FORM_SIZE
+            || $f['size'] > MAX_FACE_IMAGE_BYTES) {
+            return $f['name'] . ' er for stort (maks. ' . (MAX_FACE_IMAGE_BYTES >> 20) . ' MB).';
+        }
+        if ($f['error'] !== UPLOAD_ERR_OK || !is_uploaded_file($f['tmp'])) return 'Upload af ' . $f['name'] . ' fejlede.';
+        // Indholdet afgoer typen - ikke filnavnet eller browserens Content-Type
+        $mime = $finfo->file($f['tmp']);
+        if (!isset($ext[$mime]) || @getimagesize($f['tmp']) === false) return $f['name'] . ' er ikke et JPEG- eller PNG-billede.';
+        $f['ext'] = $ext[$mime];
+    }
+    unset($f);
+
+    if (!is_dir($dir) || !is_writable($dir)) return 'Upload-mappen findes ikke på serveren.';
+    $saved = [];
+    db()->beginTransaction();
+    try {
+        foreach ($list as $f) {
+            // Tilfaeldigt navn: brugerens filnavn kommer aldrig i naerheden af disken
+            $name = bin2hex(random_bytes(16)) . '.' . $f['ext'];
+            if (!move_uploaded_file($f['tmp'], "$dir/$name")) throw new RuntimeException('move_uploaded_file');
+            chmod("$dir/$name", 0640);
+            $saved[] = "$dir/$name";
+            q('INSERT INTO face_images (user_id, file_name, uploaded_by) VALUES (?, ?, ?)', [$userId, $name, $admin]);
+        }
+        db()->commit();
+    } catch (Throwable $e) {
+        db()->rollBack();
+        foreach ($saved as $path) @unlink($path);
+        throw $e;
+    }
+    return count($saved);
 }
 
 function fmt_time(?string $ts, string $fmt = 'd-m H:i:s'): string

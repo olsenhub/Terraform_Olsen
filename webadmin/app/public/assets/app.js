@@ -32,4 +32,17 @@
     var help = ev.target.parentNode.querySelector('[data-role-doors-help]');
     if (help) help.textContent = opt && opt.dataset.doors ? 'Adgang: ' + opt.dataset.doors : '';
   });
+
+  // Ansigtsbilleder: mindst/hoejst N filer (serveren tjekker det ogsaa)
+  document.addEventListener('change', function (ev) {
+    var input = ev.target;
+    if (!input.matches('[data-min-files]')) return;
+    var n = input.files.length;
+    var min = +input.dataset.minFiles, max = +input.dataset.maxFiles;
+    var msg = n < min ? 'Vælg mindst ' + min + ' billeder (' + n + ' valgt).'
+            : n > max ? 'Højst ' + max + ' billeder ad gangen (' + n + ' valgt).' : '';
+    input.setCustomValidity(msg);
+    var help = input.parentNode.querySelector('[data-files-help]');
+    if (help) help.textContent = msg || n + ' billeder valgt.';
+  });
 })();

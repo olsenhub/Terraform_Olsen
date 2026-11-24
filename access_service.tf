@@ -3,6 +3,12 @@
 #
 # Lytter paa MQTT efter adgangsanmodninger fra doer-enhederne, slaar op i
 # adgangskontrol-databasen, logger forsoeget og svarer aabn/afvis.
+# Ansigtsgenkendelsen sker her: Pi Zero'en sender kun kamerabilledet, og
+# servicen laver embeddingen med face_recognition (dlib).
+#
+# dlib installeres som faerdigbygget wheel (dlib-bin) i et venv, saa VM'en
+# ikke skal kompilere dlib (tager ~15 min og >2 GB RAM). Venv'et bruges ogsaa
+# af face-enroll-workeren (face_enroll.tf).
 # Koden ligger i services/access_service/ - se README.md der.
 #
 # Installeres over SSH (ikke cloud-init), saa VM'en ikke genskabes. Koeres igen
@@ -20,7 +26,15 @@ locals {
     export DEBIAN_FRONTEND=noninteractive
     APT="apt-get -o DPkg::Lock::Timeout=300"
 
-    $APT install -y -q python3-paho-mqtt python3-pymysql python3-bcrypt
+    $APT install -y -q python3-paho-mqtt python3-pymysql python3-bcrypt python3-venv
+
+    # --system-site-packages: paho/pymysql/bcrypt fra apt. setuptools<81 har
+    # stadig pkg_resources, som face_recognition_models bruger.
+    [ -x /opt/lockdin/face-venv/bin/python ] || python3 -m venv --system-site-packages /opt/lockdin/face-venv
+    /opt/lockdin/face-venv/bin/pip install -q --disable-pip-version-check \
+      "setuptools<81" dlib-bin==20.0.1.post1 face_recognition_models==0.3.0 \
+      numpy==2.2.6 Pillow==11.3.0
+    /opt/lockdin/face-venv/bin/pip install -q --disable-pip-version-check --no-deps face_recognition==1.3.0
 
     install -d -m 755 /opt/lockdin
     install -m 644 /tmp/access_service.py /opt/lockdin/access_service.py
@@ -69,7 +83,7 @@ locals {
 
     [Service]
     EnvironmentFile=/etc/lockdin/access-service.env
-    ExecStart=/usr/bin/python3 /opt/lockdin/access_service.py
+    ExecStart=/opt/lockdin/face-venv/bin/python /opt/lockdin/access_service.py
     Restart=always
     RestartSec=5
     DynamicUser=yes
@@ -85,7 +99,7 @@ locals {
     systemctl daemon-reload
     systemctl enable lockdin-access
     systemctl restart lockdin-access
-    sleep 2
+    sleep 5    # dlib-modellerne indlaeses foerste gang et ansigt behandles
     systemctl is-active lockdin-access
   BASH
 }
